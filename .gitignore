@@ -1,0 +1,31 @@
+# ===== macOS =====
+.DS_Store
+
+# ===== Swift 守护进程 =====
+.build/
+*.swiftpm
+
+# ===== 第三方库（64MB，从 sherpa-onnx releases 下载）=====
+# 保留目录结构和头文件，忽略二进制动态库
+third_party/**/*.dylib
+third_party/**/*.so
+third_party/**/*.dll
+third_party/**/*.a
+
+# ===== Rust / Tauri =====
+target/
+**/target/
+desktop/src-tauri/gen/
+
+# ===== Node / 前端 =====
+node_modules/
+dist/
+*.local
+
+# ===== 日志与临时文件 =====
+*.log
+*.tmp
+probe/captures/
+
+# sherpa-onnx CLI 工具（构建用不到）
+third_party/**/bin/

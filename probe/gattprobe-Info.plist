@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleIdentifier</key><string>com.miremote.gattprobe</string>
+  <key>CFBundleName</key><string>gattprobe</string>
+  <key>CFBundleExecutable</key><string>gattprobe</string>
+  <key>NSBluetoothAlwaysUsageDescription</key><string>枚举小米语音遥控器的 GATT 服务并读取语音数据流</string>
+  <key>NSBluetoothPeripheralUsageDescription</key><string>枚举小米语音遥控器的 GATT 服务并读取语音数据流</string>
+</dict></plist>
