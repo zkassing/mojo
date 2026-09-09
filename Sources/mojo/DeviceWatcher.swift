@@ -7,7 +7,7 @@ import IOKit.hid
 final class DeviceWatcher {
     private let vendorId: Int
     private let productId: Int
-    private let queue = DispatchQueue(label: "miremote.device")
+    private let queue = DispatchQueue(label: "mojo.device")
     private var _ids = Set<UInt64>()
     private var manager: IOHIDManager?
     private var onChange: ((Set<UInt64>) -> Void)?

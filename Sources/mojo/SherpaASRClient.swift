@@ -8,7 +8,7 @@ final class SherpaASRClient {
     var onPartial: ((String) -> Void)?
     var onFinal: ((String) -> Void)?
 
-    private let queue = DispatchQueue(label: "miremote.sherpa", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "mojo.sherpa", qos: .userInitiated)
     /// 端点（句尾静音）已确认的文本
     private var committed = ""
     private var active = false

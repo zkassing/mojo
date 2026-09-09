@@ -2141,7 +2141,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "miremote-desktop"
+name = "mojo-desktop"
 version = "0.1.0"
 dependencies = [
  "anyhow",

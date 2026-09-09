@@ -35,11 +35,11 @@ func cmdInit(force: Bool) throws {
         print("✅ 已自动识别设备: \(mi.name) (VID 0x\(String(mi.vendor, radix: 16)), PID 0x\(String(mi.product, radix: 16)))")
     } else {
         print("⚠️  未检测到小米遥控器，先用默认 VID/PID 写入配置（0x2717/0x32B8）")
-        print("   连接遥控器后可运行 `miremote devices` 核对。")
+        print("   连接遥控器后可运行 `mojo devices` 核对。")
     }
     try ConfigStore.save(c)
     print("📄 配置已写入: \(ConfigStore.path.path)")
-    print("\n下一步：运行 `miremote learn` 逐个记录遥控器按键。")
+    print("\n下一步：运行 `mojo learn` 逐个记录遥控器按键。")
 }
 
 func cmdDevices() {
@@ -64,7 +64,7 @@ func cmdDevices() {
 
 /// 交互式学习按键
 func cmdLearn() throws {
-    guard ConfigStore.exists() else { throw MiRemoteError.noConfig }
+    guard ConfigStore.exists() else { throw MojoError.noConfig }
     var config = try ConfigStore.load()
     let engine = RemapEngine(config: config)
 
@@ -152,14 +152,14 @@ func cmdWatch() throws {
 }
 
 func cmdRun(verbose: Bool) throws {
-    guard ConfigStore.exists() else { throw MiRemoteError.noConfig }
+    guard ConfigStore.exists() else { throw MojoError.noConfig }
     var config = try ConfigStore.load()
     if verbose { config.options.verbose = true }
     let engine = RemapEngine(config: config)
     try engine.start()
 
     print("""
-    miremote \(VERSION) 已启动
+    mojo \(VERSION) 已启动
       设备: \(config.device.name ?? "?") (0x\(String(format: "%04x", config.device.vendorId))/0x\(String(format: "%04x", config.device.productId)))
       按键: \(config.buttons.count) 个
       方案: \(config.profiles.map { $0.name }.joined(separator: ", "))
@@ -212,7 +212,7 @@ func watchConfigFile(_ onChange: @escaping (Config) -> Void) {
 
 // MARK: - launchd 安装
 
-let plistLabel = "com.zyk.miremote"
+let plistLabel = "com.zyk.mojo"
 
 func launchAgentPath() -> URL {
     FileManager.default.homeDirectoryForCurrentUser
@@ -222,7 +222,7 @@ func launchAgentPath() -> URL {
 func cmdInstall() throws {
     // 优先指向 .app 内的二进制：只有真实 .app bundle 才能拿到蓝牙/语音识别权限
     let appBinary = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent("Library/Application Support/miremote/miremote.app/Contents/MacOS/miremote")
+        .appendingPathComponent("Library/Application Support/mojo/mojo.app/Contents/MacOS/mojo")
     let exe = URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL.path
     let plainResolved = (try? FileManager.default.destinationOfSymbolicLink(atPath: exe)) ?? exe
 
@@ -245,8 +245,8 @@ func cmdInstall() throws {
         "RunAtLoad": true,
         "KeepAlive": ["SuccessfulExit": false],
         "ProcessType": "Interactive",
-        "StandardOutPath": logDir.appendingPathComponent("miremote.log").path,
-        "StandardErrorPath": logDir.appendingPathComponent("miremote.err.log").path,
+        "StandardOutPath": logDir.appendingPathComponent("mojo.log").path,
+        "StandardErrorPath": logDir.appendingPathComponent("mojo.err.log").path,
         "EnvironmentVariables": ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"],
     ]
     let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
@@ -265,7 +265,7 @@ func cmdInstall() throws {
         print("⚠️  launchctl bootstrap 返回 \(r.status): \(r.out)\(r.err)")
         print("   可手动执行: launchctl bootstrap gui/\(uid) \(path.path)")
     }
-    print("📋 日志: \(logDir.appendingPathComponent("miremote.log").path)")
+    print("📋 日志: \(logDir.appendingPathComponent("mojo.log").path)")
     print("\n重要：可执行文件路径变了要重新授权「辅助功能」。")
 }
 
@@ -293,7 +293,7 @@ func cmdStatus() {
 
     // 语音相关
     let appBinary = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent("Library/Application Support/miremote/miremote.app")
+        .appendingPathComponent("Library/Application Support/mojo/mojo.app")
     let hasApp = FileManager.default.fileExists(atPath: appBinary.path)
     print(".app 包装: \(hasApp ? "✅ \(appBinary.path)" : "❌ 未构建（语音需要，运行 ./build-app.sh）")")
     let sr = SFSpeechRecognizer.authorizationStatus()
@@ -302,15 +302,15 @@ func cmdStatus() {
 }
 
 func cmdReload() {
-    let out = shell("/usr/bin/pkill", ["-HUP", "-f", "miremote run"])
-    print(out.status == 0 ? "✅ 已发送重载信号" : "⚠️  没找到运行中的 miremote")
+    let out = shell("/usr/bin/pkill", ["-HUP", "-f", "mojo run"])
+    print(out.status == 0 ? "✅ 已发送重载信号" : "⚠️  没找到运行中的 mojo")
 }
 
 func cmdPreset() throws {
-    guard ConfigStore.exists() else { throw MiRemoteError.noConfig }
+    guard ConfigStore.exists() else { throw MojoError.noConfig }
     var config = try ConfigStore.load()
     guard !config.buttons.isEmpty else {
-        print("还没有学习任何按键，请先运行 `miremote learn`。")
+        print("还没有学习任何按键，请先运行 `mojo learn`。")
         return
     }
     let names = Set(config.buttons.keys)
@@ -364,9 +364,9 @@ extension String {
 
 func usage() {
     print("""
-    miremote \(VERSION) — 小米蓝牙遥控器按键映射工具 (macOS)
+    mojo \(VERSION) — 小米蓝牙遥控器按键映射工具 (macOS)
 
-    用法: miremote <命令> [选项]
+    用法: mojo <命令> [选项]
 
     命令:
       init [--force]   生成默认配置文件
@@ -384,11 +384,11 @@ func usage() {
     配置文件: \(ConfigStore.path.path)
 
     首次使用:
-      1. miremote init
-      2. 到 系统设置 › 隐私与安全性 › 辅助功能 授权 miremote
-      3. miremote learn      # 逐个按键并命名
-      4. 编辑配置文件设置动作，或先跑 miremote preset
-      5. miremote run        # 试运行；满意后 miremote install
+      1. mojo init
+      2. 到 系统设置 › 隐私与安全性 › 辅助功能 授权 mojo
+      3. mojo learn      # 逐个按键并命名
+      4. 编辑配置文件设置动作，或先跑 mojo preset
+      5. mojo run        # 试运行；满意后 mojo install
     """)
 }
 
@@ -410,7 +410,7 @@ do {
     case "uninstall": cmdUninstall()
     case "status":    cmdStatus()
     case "reload":    cmdReload()
-    case "version", "--version", "-V": print("miremote \(VERSION)")
+    case "version", "--version", "-V": print("mojo \(VERSION)")
     default:          usage()
     }
 } catch {

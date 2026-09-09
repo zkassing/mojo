@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "MiRemote",
+  "productName": "Mojo",
   "version": "0.1.0",
-  "identifier": "com.zyk.miremote",
+  "identifier": "com.zyk.mojo",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",

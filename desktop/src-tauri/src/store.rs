@@ -1,7 +1,7 @@
 //! 配置文件定位与读写。
 //!
-//! macOS/Linux: ~/.config/miremote/config.json
-//! Windows:     %APPDATA%\miremote\config.json
+//! macOS/Linux: ~/.config/mojo/config.json
+//! Windows:     %APPDATA%\mojo\config.json
 
 use std::path::PathBuf;
 
@@ -11,18 +11,18 @@ use crate::config::Config;
 
 pub fn config_dir() -> Result<PathBuf> {
     // 与 Swift 守护进程保持一致：
-    //   macOS / Linux: ~/.config/miremote
-    //   Windows:       %APPDATA%\miremote
+    //   macOS / Linux: ~/.config/mojo
+    //   Windows:       %APPDATA%\mojo
     // 注意 dirs::config_dir() 在 macOS 上是 ~/Library/Application Support，不能用。
     #[cfg(target_os = "windows")]
     {
         let base = dirs::config_dir().context("找不到系统配置目录")?;
-        Ok(base.join("miremote"))
+        Ok(base.join("mojo"))
     }
     #[cfg(not(target_os = "windows"))]
     {
         let home = dirs::home_dir().context("找不到用户主目录")?;
-        Ok(home.join(".config").join("miremote"))
+        Ok(home.join(".config").join("mojo"))
     }
 }
 
@@ -31,7 +31,7 @@ pub fn config_path() -> Result<PathBuf> {
 }
 
 pub fn log_path() -> Result<PathBuf> {
-    Ok(config_dir()?.join("logs").join("miremote.log"))
+    Ok(config_dir()?.join("logs").join("mojo.log"))
 }
 
 /// 读取配置。文件不存在时返回内置默认配置（不落盘）。

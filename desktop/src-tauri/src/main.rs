@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    miremote_desktop_lib::run()
+    mojo_desktop_lib::run()
 }

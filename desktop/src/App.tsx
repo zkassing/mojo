@@ -54,7 +54,7 @@ export default function App() {
               <Gamepad2 className="h-5 w-5" />
             </div>
             <div className="leading-tight">
-              <div className="text-sm font-semibold">MiRemote</div>
+              <div className="text-sm font-semibold">Mojo</div>
               <div className="text-[11px] text-muted-foreground">
                 小米语音遥控器
               </div>

@@ -293,7 +293,7 @@ fn sherpa_dir(custom_dir: Option<String>) -> String {
     custom_dir.filter(|s| !s.is_empty()).unwrap_or_else(|| {
         dirs::home_dir()
             .map(|h| {
-                h.join(".config/miremote/models/sherpa-onnx-x-asr-480ms-streaming-zipformer-transducer-zh-en-punct-int8-2026-06-05")
+                h.join(".config/mojo/models/sherpa-onnx-x-asr-480ms-streaming-zipformer-transducer-zh-en-punct-int8-2026-06-05")
                     .to_string_lossy()
                     .into_owned()
             })
@@ -309,7 +309,7 @@ async fn sherpa_model_download(app: tauri::AppHandle) -> Result<String, String> 
     const DIR_NAME: &str = "sherpa-onnx-x-asr-480ms-streaming-zipformer-transducer-zh-en-punct-int8-2026-06-05";
 
     let home = dirs::home_dir().ok_or("找不到用户主目录")?;
-    let models = home.join(".config/miremote/models");
+    let models = home.join(".config/mojo/models");
     std::fs::create_dir_all(&models).map_err(|e| e.to_string())?;
     let tar_path = models.join("sherpa-model.tar.bz2");
 

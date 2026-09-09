@@ -1,4 +1,4 @@
-# miremote
+# mojo
 
 小米蓝牙语音遥控器 → macOS 按键映射 + 语音转文字工具。
 
@@ -17,38 +17,38 @@
 ./build-app.sh
 
 # 2. 写入配置
-cp config.sample.json ~/.config/miremote/config.json
+cp config.sample.json ~/.config/mojo/config.json
 
 # 3. 授权（系统设置 › 隐私与安全性）
-#    ① 辅助功能    → 添加 ~/Library/Application Support/miremote/miremote.app
+#    ① 辅助功能    → 添加 ~/Library/Application Support/mojo/mojo.app
 #    ② 输入监控    → 同上（返回键需要）
 #    ③ 蓝牙 / 语音识别 → 首次按语音键时自动弹窗
 
 # 4. 试跑
-open ~/Library/Application\ Support/miremote/miremote.app --args run -v
+open ~/Library/Application\ Support/mojo/mojo.app --args run -v
 
 # 5. 满意后装成开机自启
-~/.local/bin/miremote install
+~/.local/bin/mojo install
 ```
 
 > 授权注意：macOS 的 TCC 权限绑定「路径 + 代码签名标识」。
 > `build-app.sh` 优先用本机 Apple 开发证书签名，标识固定，重建后权限不失效。
-> 若只有 ad-hoc 签名，每次重建都需重新授权（先 `tccutil reset Accessibility com.zyk.miremote` 再添加）。
+> 若只有 ad-hoc 签名，每次重建都需重新授权（先 `tccutil reset Accessibility com.zyk.mojo` 再添加）。
 
 ## 命令
 
 | 命令 | 说明 |
 |---|---|
-| `miremote init [--force]` | 生成默认配置，自动识别设备 VID/PID |
-| `miremote devices` | 列出所有已连接 HID 设备（查 VID/PID/registryID） |
-| `miremote watch` | 实时打印遥控器原始信号，**不做映射**，用于调试 |
-| `miremote learn` | 交互式学习按键：按一下键 → 输入名字 → 自动写入配置 |
-| `miremote preset` | 根据已学按键生成一套基础映射 |
-| `miremote run [-v]` | 前台运行映射服务 |
-| `miremote install` | 装成 launchd 用户级服务，开机自启 |
-| `miremote uninstall` | 卸载开机自启 |
-| `miremote status` | 查看配置 / 权限 / 运行状态 / 设备连接 |
-| `miremote reload` | 让运行中的服务重读配置（也支持保存文件后自动热重载） |
+| `mojo init [--force]` | 生成默认配置，自动识别设备 VID/PID |
+| `mojo devices` | 列出所有已连接 HID 设备（查 VID/PID/registryID） |
+| `mojo watch` | 实时打印遥控器原始信号，**不做映射**，用于调试 |
+| `mojo learn` | 交互式学习按键：按一下键 → 输入名字 → 自动写入配置 |
+| `mojo preset` | 根据已学按键生成一套基础映射 |
+| `mojo run [-v]` | 前台运行映射服务 |
+| `mojo install` | 装成 launchd 用户级服务，开机自启 |
+| `mojo uninstall` | 卸载开机自启 |
+| `mojo status` | 查看配置 / 权限 / 运行状态 / 设备连接 |
+| `mojo reload` | 让运行中的服务重读配置（也支持保存文件后自动热重载） |
 
 ## 当前映射（terminal 方案）
 
@@ -97,11 +97,11 @@ open ~/Library/Application\ Support/miremote/miremote.app --args run -v
 | `aux:` | 媒体键 NX_KEYTYPE | `aux:0`（音量+） |
 | `hid:` | HID usagePage:usage 直读 | `hid:7:241`（返回键） |
 
-用 `miremote watch` 可以看到所有三种通道的信号。
+用 `mojo watch` 可以看到所有三种通道的信号。
 
 ## 配置文件
 
-位置：`~/.config/miremote/config.json`（支持 `//` 注释）
+位置：`~/.config/mojo/config.json`（支持 `//` 注释）
 
 ```jsonc
 {
@@ -261,10 +261,10 @@ macOS 的蓝牙 TCC 只认真实 .app bundle 的 Info.plist，
 ## 常见问题
 
 **改了配置要重启服务吗？**
-不用。保存文件后会自动热重载，也可以手动 `miremote reload`。
+不用。保存文件后会自动热重载，也可以手动 `mojo reload`。
 
 **提示无法创建事件拦截 / 按键没反应？**
-到 系统设置 › 隐私与安全性 › 辅助功能 检查 miremote 是否勾选。
+到 系统设置 › 隐私与安全性 › 辅助功能 检查 mojo 是否勾选。
 换过可执行文件路径（比如重新编译到别处、跑了 `install`）需要**移除旧条目再重新添加**，
 macOS 是按路径 + 签名授权的。
 
@@ -272,10 +272,10 @@ macOS 是按路径 + 签名授权的。
 绑成 `{"tap": {"type": "passthrough"}}`。
 
 **怎么知道某个键的原始码？**
-`miremote watch` 然后按键，或用 `miremote learn` 交互式录入。
+`mojo watch` 然后按键，或用 `mojo learn` 交互式录入。
 
 **日志在哪？**
-后台服务：`~/.config/miremote/logs/miremote.log`
+后台服务：`~/.config/mojo/logs/mojo.log`
 
 ## 已知限制
 

@@ -1,5 +1,5 @@
 [package]
-name = "miremote-desktop"
+name = "mojo-desktop"
 version = "0.1.0"
 description = "小米蓝牙语音遥控器跨平台控制面板"
 authors = ["zyk"]
@@ -7,7 +7,7 @@ edition = "2021"
 rust-version = "1.77"
 
 [lib]
-name = "miremote_desktop_lib"
+name = "mojo_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

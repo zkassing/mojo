@@ -547,7 +547,7 @@ RunLoop.main.run()
 //     "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 //   <plist version="1.0"><dict>
 //     <key>CFBundleExecutable</key><string>GattProbe</string>
-//     <key>CFBundleIdentifier</key><string>com.miremote.gattprobe</string>
+//     <key>CFBundleIdentifier</key><string>com.mojo.gattprobe</string>
 //     <key>CFBundleName</key><string>GattProbe</string>
 //     <key>CFBundlePackageType</key><string>APPL</string>
 //     <key>NSBluetoothAlwaysUsageDescription</key>

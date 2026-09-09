@@ -1,4 +1,4 @@
-# MiRemote Desktop
+# Mojo Desktop
 
 小米蓝牙语音遥控器的跨平台可视化控制面板，基于 **Tauri 2 + React + TypeScript**。
 
@@ -34,8 +34,8 @@ desktop/
 
 | 平台 | 路径 |
 |---|---|
-| macOS / Linux | `~/.config/miremote/config.json` |
-| Windows | `%APPDATA%\miremote\config.json` |
+| macOS / Linux | `~/.config/mojo/config.json` |
+| Windows | `%APPDATA%\mojo\config.json` |
 
 ## 开发
 

@@ -8,7 +8,7 @@ let sherpaInclude = "\(packageRoot)/third_party/sherpa-onnx/include"
 let sherpaLib = "\(packageRoot)/third_party/sherpa-onnx/lib"
 
 let package = Package(
-    name: "miremote",
+    name: "mojo",
     platforms: [.macOS(.v13)],
     targets: [
         .target(
@@ -23,9 +23,9 @@ let package = Package(
             ])]
         ),
         .executableTarget(
-            name: "miremote",
+            name: "mojo",
             dependencies: ["SherpaBridge"],
-            path: "Sources/miremote",
+            path: "Sources/mojo",
             linkerSettings: [.unsafeFlags([
                 "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"
             ])]

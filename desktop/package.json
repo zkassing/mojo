@@ -1,5 +1,5 @@
 {
-  "name": "miremote-desktop",
+  "name": "mojo-desktop",
   "version": "0.1.0",
   "description": "小米蓝牙语音遥控器 · 跨平台可视化配置面板",
   "type": "module",

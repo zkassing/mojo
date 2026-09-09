@@ -241,7 +241,7 @@ struct VoiceConfig: Codable {
     /// apple = 系统自带 SFSpeechRecognizer，没网时的备胎（已下线）；
     /// sherpa = sherpa-onnx 本地流式（免费、离线、跨平台）。
     var engine: String = "sherpa"
-    /// sherpa 模型目录（留空 = ~/.config/miremote/models/<默认双语流式模型>）
+    /// sherpa 模型目录（留空 = ~/.config/mojo/models/<默认双语流式模型>）
     var sherpaModelDir: String = ""
     /// 火山引擎 AppID
     var volcAppId: String = ""
@@ -290,7 +290,7 @@ struct VoiceConfig: Codable {
     var sherpaDir: String {
         if !sherpaModelDir.isEmpty { return sherpaModelDir }
         return (NSHomeDirectory() as NSString)
-            .appendingPathComponent(".config/miremote/models/sherpa-onnx-x-asr-480ms-streaming-zipformer-transducer-zh-en-punct-int8-2026-06-05")
+            .appendingPathComponent(".config/mojo/models/sherpa-onnx-x-asr-480ms-streaming-zipformer-transducer-zh-en-punct-int8-2026-06-05")
     }
 }
 
@@ -342,7 +342,7 @@ struct Config: Codable {
 enum ConfigStore {
     static var dir: URL {
         FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".config/miremote", isDirectory: true)
+            .appendingPathComponent(".config/mojo", isDirectory: true)
     }
     static var path: URL { dir.appendingPathComponent("config.json") }
 

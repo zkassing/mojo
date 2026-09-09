@@ -29,3 +29,7 @@ probe/captures/
 
 # sherpa-onnx CLI 工具（构建用不到）
 third_party/**/bin/
+
+# probe 编译产物
+probe/GattProbe.app/
+probe/gattprobe

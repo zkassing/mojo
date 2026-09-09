@@ -262,7 +262,7 @@ mod tests {
     fn parses_real_user_config_if_present() {
         let home = std::env::var("HOME").unwrap_or_default();
         let path = std::path::Path::new(&home)
-            .join(".config/miremote/config.json");
+            .join(".config/mojo/config.json");
         if path.exists() {
             let raw = std::fs::read_to_string(path).unwrap();
             let cfg: Config = serde_json::from_str(&raw).expect("真实配置必须能解析");

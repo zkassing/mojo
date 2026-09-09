@@ -1,18 +1,18 @@
 #!/bin/bash
-# 打包 miremote 为 .app bundle（蓝牙权限需要真实 .app + Info.plist）
+# 打包 mojo 为 .app bundle（蓝牙权限需要真实 .app + Info.plist）
 set -e
 cd "$(dirname "$0")"
 BIN_DIR="$HOME/.local/bin"
-APP_DIR="$HOME/Library/Application Support/miremote"
-APP="$APP_DIR/miremote.app"
+APP_DIR="$HOME/Library/Application Support/mojo"
+APP="$APP_DIR/mojo.app"
 PLIST="$APP/Contents/Info.plist"
 
 echo "▸ 编译 (release)…"
 swift build -c release
 
-echo "▸ 安装到 $BIN_DIR/miremote"
+echo "▸ 安装到 $BIN_DIR/mojo"
 mkdir -p "$BIN_DIR"
-cp -f .build/release/miremote "$BIN_DIR/miremote"
+cp -f .build/release/mojo "$BIN_DIR/mojo"
 
 echo "▸ 打包 .app: $APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
@@ -25,11 +25,11 @@ cat > "$PLIST" <<PLIST
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>miremote</string>
+    <string>mojo</string>
     <key>CFBundleIdentifier</key>
-    <string>com.zyk.miremote</string>
+    <string>com.zyk.mojo</string>
     <key>CFBundleName</key>
-    <string>miremote</string>
+    <string>mojo</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>CFBundlePackageType</key>
@@ -44,7 +44,7 @@ cat > "$PLIST" <<PLIST
 </plist>
 PLIST
 
-cp -f "$BIN_DIR/miremote" "$APP/Contents/MacOS/miremote"
+cp -f "$BIN_DIR/mojo" "$APP/Contents/MacOS/mojo"
 
 # sherpa-onnx 动态库（本地免费 ASR 引擎）→ .app/Contents/Frameworks
 echo "▸ 拷贝 sherpa-onnx 动态库"
@@ -70,12 +70,12 @@ fi
 
 echo "✅ $APP 已生成"
 echo "   运行: open $APP --args run"
-echo "   或: $APP/Contents/MacOS/miremote run"
+echo "   或: $APP/Contents/MacOS/mojo run"
 echo ""
 
 # 安装 launchd 自启时指向 .app 内的二进制
-"$BIN_DIR/miremote" status 2>/dev/null | grep -q "开机自启: ✅" && {
+"$BIN_DIR/mojo" status 2>/dev/null | grep -q "开机自启: ✅" && {
   echo "⚠️  已安装开机自启，需要重新安装以指向新路径"
-  echo "   $BIN_DIR/miremote uninstall"
-  echo "   $BIN_DIR/miremote install (需先编辑 launchAgent 指向 .app 内二进制)"
+  echo "   $BIN_DIR/mojo uninstall"
+  echo "   $BIN_DIR/mojo install (需先编辑 launchAgent 指向 .app 内二进制)"
 }

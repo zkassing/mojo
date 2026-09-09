@@ -90,7 +90,7 @@ async fn run(cred: Credentials) -> Result<String, String> {
 
     // fullClientRequest
     let body = serde_json::json!({
-        "user": { "uid": "miremote-panel" },
+        "user": { "uid": "mojo-panel" },
         "audio": { "format": "pcm", "codec": "raw", "rate": 16000, "bits": 16, "channel": 1 },
         "request": {
             "model_name": "bigmodel",
@@ -163,5 +163,5 @@ fn uuid_like() -> String {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
-    format!("miremote-{nanos:x}")
+    format!("mojo-{nanos:x}")
 }

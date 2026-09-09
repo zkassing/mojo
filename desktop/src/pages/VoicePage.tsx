@@ -238,7 +238,7 @@ export default function VoicePage() {
               </Label>
               <Input
                 className="font-mono text-[12.5px]"
-                placeholder="如 1921055038"
+                placeholder="在语音技术控制台查看"
                 value={v.volcAppId}
                 onChange={(e) => setV({ volcAppId: e.target.value })}
               />

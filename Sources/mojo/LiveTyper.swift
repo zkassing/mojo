@@ -11,7 +11,7 @@ final class LiveTyper {
     /// 已经敲进去的文字
     private var onScreen = ""
     /// 串行掉所有输入操作，避免中间结果互相赶车
-    private let queue = DispatchQueue(label: "miremote.livetyper")
+    private let queue = DispatchQueue(label: "mojo.livetyper")
 
     init(emitter: Emitter) {
         self.emitter = emitter

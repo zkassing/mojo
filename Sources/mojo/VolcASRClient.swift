@@ -134,7 +134,7 @@ final class VolcASRClient: NSObject {
             "result_type": "full",     // 每次返回累计全文，解析简单
         ]
         let body: [String: Any] = [
-            "user": ["uid": "miremote"],
+            "user": ["uid": "mojo"],
             "audio": [
                 "format": "pcm",
                 "codec": "raw",

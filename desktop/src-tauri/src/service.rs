@@ -1,13 +1,13 @@
 //! 守护进程服务管理。
 //!
-//! macOS：通过 launchctl 管理 com.zyk.miremote（LaunchAgent）。
+//! macOS：通过 launchctl 管理 com.zyk.mojo（LaunchAgent）。
 //! 其他平台：后续用系统服务 / 计划任务实现，目前返回未支持。
 
 #![allow(dead_code)]
 
 use std::process::Command;
 
-const LABEL: &str = "com.zyk.miremote";
+const LABEL: &str = "com.zyk.mojo";
 
 pub fn gui_target() -> String {
     let uid = current_uid();

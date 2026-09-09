@@ -141,7 +141,7 @@ final class RemapEngine {
             let me = Unmanaged<RemapEngine>.fromOpaque(ctx).takeUnretainedValue()
             return me.handle(proxy: proxy, type: type, event: event)
         }, userInfo: ctx) else {
-            throw MiRemoteError.tapCreationFailed
+            throw MojoError.tapCreationFailed
         }
         tap = t
         let src = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, t, 0)
@@ -605,7 +605,7 @@ final class RemapEngine {
     }
 }
 
-enum MiRemoteError: LocalizedError {
+enum MojoError: LocalizedError {
     case tapCreationFailed
     case noConfig
     case deviceNotFound
@@ -615,11 +615,11 @@ enum MiRemoteError: LocalizedError {
         case .tapCreationFailed:
             return """
             无法创建事件拦截（CGEventTap）。
-            请到 系统设置 › 隐私与安全性 › 辅助功能 中，把 miremote 加入并勾选，然后重试。
+            请到 系统设置 › 隐私与安全性 › 辅助功能 中，把 mojo 加入并勾选，然后重试。
             若已勾选过旧版本，先移除再重新添加。
             """
         case .noConfig:
-            return "找不到配置文件 \(ConfigStore.path.path)，请先运行 `miremote init`。"
+            return "找不到配置文件 \(ConfigStore.path.path)，请先运行 `mojo init`。"
         case .deviceNotFound:
             return "找不到目标设备，请确认遥控器已通过蓝牙连接。"
         }
