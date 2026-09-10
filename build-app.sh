@@ -78,4 +78,7 @@ echo ""
   echo "⚠️  已安装开机自启，需要重新安装以指向新路径"
   echo "   $BIN_DIR/mojo uninstall"
   echo "   $BIN_DIR/mojo install (需先编辑 launchAgent 指向 .app 内二进制)"
-}
+} || true
+
+# 上面的 && 链在「未装自启」时会让脚本以 1 退出（CI 会误判为失败）
+exit 0

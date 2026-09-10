@@ -151,7 +151,6 @@ final class RemapEngine {
     }
 
     func reload(_ newConfig: Config) {
-        let oldVoice = config.voice
         config = newConfig
         rawToButton = newConfig.rawToButton()
         Log.verbose = newConfig.options.verbose
@@ -173,14 +172,9 @@ final class RemapEngine {
             hidWatcher = hw
             hw.start()
         }
-        // 语音：刚启用则建链路；locale/output 改了则只重建识别器
-        // （不重建 ATVV，避免白白断开重连蓝牙）
-        if usesDictate() {
-            if atvv == nil {
-                setupVoice()
-            } else if newConfig.voice.usesVolc || newConfig.voice.usesSherpa {
-                // 流式引擎：凭证/模型在每次会话时读，无需重建
-            }
+        // 语音：刚启用则建链路（流式引擎的凭证/模型每次会话现读，热重载无需重建）
+        if usesDictate(), atvv == nil {
+            setupVoice()
         }
         Log.info("配置已重新加载（\(newConfig.buttons.count) 个按键，\(newConfig.profiles.count) 个方案）")
     }
