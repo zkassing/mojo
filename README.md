@@ -10,7 +10,7 @@
 - 设备：小米蓝牙语音遥控器（VID `0x2717` / PID `0x32b8`，BLE HID）
 - 形态：Tauri 面板应用（macOS 菜单栏常驻，托盘运行），内置完整引擎，无独立守护进程
 - 实现：Rust（引擎）+ CGEventTap / IOKit HID / btleplug(BLE) / sherpa-onnx
-- 平台：macOS 完整支持；Windows / Linux 内核移植中（配置功能可用）
+- 平台：macOS 完整支持；Windows / Linux 内核已接入（evdev/uinput、LL 钩子/SendInput），行为差异见下文
 
 ## 快速开始（macOS）
 

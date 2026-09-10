@@ -37,7 +37,7 @@ jobs:
         with:
           workspaces: desktop/src-tauri
 
-      # sherpa 预编译库体积大不入库；只有 macOS 产物带本地 ASR
+      # sherpa 预编译库体积大不入库；三平台各自下载（build.rs 按目标平台选目录）
       - name: 下载 sherpa-onnx 动态库
         if: runner.os == 'macOS'
         run: |
@@ -47,6 +47,27 @@ jobs:
           mkdir -p third_party/sherpa-onnx
           cp -R /tmp/sherpa-onnx-v1.13.7-osx-arm64-shared/lib third_party/sherpa-onnx/
           cp -R /tmp/sherpa-onnx-v1.13.7-osx-arm64-shared/include third_party/sherpa-onnx/
+
+      - name: 下载 sherpa-onnx 动态库（Windows，MD-Release 动态 CRT）
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          curl -sL --fail -o /tmp/sherpa.tar.bz2 \
+            "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.7/sherpa-onnx-v1.13.7-win-x64-shared-MD-Release.tar.bz2"
+          tar xjf /tmp/sherpa.tar.bz2 -C /tmp
+          mkdir -p third_party/sherpa-onnx-win-x64
+          cp -R /tmp/sherpa-onnx-v1.13.7-win-x64-shared-MD-Release/lib third_party/sherpa-onnx-win-x64/
+          cp -R /tmp/sherpa-onnx-v1.13.7-win-x64-shared-MD-Release/include third_party/sherpa-onnx-win-x64/
+
+      - name: 下载 sherpa-onnx 动态库（Linux）
+        if: runner.os == 'Linux'
+        run: |
+          curl -sL --fail -o /tmp/sherpa.tar.bz2 \
+            "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.7/sherpa-onnx-v1.13.7-linux-x64-shared.tar.bz2"
+          tar xjf /tmp/sherpa.tar.bz2 -C /tmp
+          mkdir -p third_party/sherpa-onnx-linux-x64
+          cp -R /tmp/sherpa-onnx-v1.13.7-linux-x64-shared/lib third_party/sherpa-onnx-linux-x64/
+          cp -R /tmp/sherpa-onnx-v1.13.7-linux-x64-shared/include third_party/sherpa-onnx-linux-x64/
 
       - name: Linux 系统依赖（WebKitGTK 等）
         if: runner.os == 'Linux'

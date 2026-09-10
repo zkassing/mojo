@@ -75,7 +75,15 @@ pub fn current() -> Box<dyn PlatformEngine> {
     {
         Box::new(macos::MacEngine::new())
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    {
+        Box::new(windows::WindowsEngine::new())
+    }
+    #[cfg(target_os = "linux")]
+    {
+        Box::new(linux::LinuxEngine::new())
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
     {
         Box::new(stub::StubEngine::new())
     }
@@ -88,7 +96,7 @@ pub fn shared() -> &'static dyn PlatformEngine {
     ENGINE.get_or_init(current).as_ref()
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
 mod stub {
     use super::*;
 

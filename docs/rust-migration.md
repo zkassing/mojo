@@ -99,3 +99,23 @@ sherpa 线程池   本地识别推理（全局一个引擎实例，会话间 res
   与旧 Swift 版同证书同 bundle id → TCC 授权继承实测通过；
   sherpa dylib 已收进 .app Frameworks 并随包重签名，rpath 已规范化，可分发。
   下一步：Windows/Linux 内核。
+
+## 阶段 5 · Windows / Linux 内核（已接入，待真机验证）
+
+- `engine/windows/`：`WH_KEYBOARD_LL` 钩子 + Win32 消息泵引擎线程；信号 id
+  `win:vk:0x{vk}`（verbose 日志可发现）；SendInput 注入（Unicode 直输，
+  LiveTyping 完整可用）；SetupAPI 轮询遥控器在线状态；GetForegroundWindow
+  前台 App。已知取舍：LL 钩子拿不到设备来源，映射键对所有键盘生效
+  （PowerToys 同款）；SendInput 对管理员进程无效（UIPI）。
+- `engine/linux/`：evdev 独占抓取（grab）+ uinput 虚拟设备转发未映射事件
+  （真·按设备过滤）；信号 id `linux:key:{name}`；读线程 + 代数定时器；
+  文本注入 ASCII 直打、非 ASCII 走剪贴板粘贴（v1 建议 liveTyping=false）；
+  前台 App 暂恒默认方案；需 input 组/udev 权限（引擎启动自检并给出提示）。
+- sherpa 三平台：build.rs 按 CARGO_CFG_TARGET_OS 选库目录
+  （third_party/sherpa-onnx{,-win-x64,-linux-x64}），CI 各自下载
+  （Windows 用 MD-Release）。Windows/Linux 产物运行时需 DLL/.so 与
+  可执行文件同目录（CI 产物打包事项，真机验证时处理）。
+- TLS 从 native-tls 换 rustls（tokio-tungstenite rustls-tls-native-roots），
+  免去 Linux 的 openssl-sys 交叉编译依赖。
+- 本地交叉检查：`MOJO_SKIP_TAURI_BUILD=1 cargo check --target
+  x86_64-pc-windows-msvc`（Linux 需 pkg-config 桩，见会话记录）。
