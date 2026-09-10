@@ -456,6 +456,7 @@ fn bluetooth_usable() -> bool {
 }
 
 /// 当前进程是否跑在 .app 包里
+#[cfg(target_os = "macos")]
 fn is_bundled_app() -> bool {
     std::env::current_exe()
         .map(|p| p.to_string_lossy().contains(".app/Contents/MacOS/"))

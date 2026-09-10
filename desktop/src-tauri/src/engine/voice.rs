@@ -14,8 +14,8 @@ use super::asr::{self, AsrOut, SessionIn, SessionInTx};
 use super::atvv::{self, AtvvHandle};
 use super::livetype;
 use super::log::Log;
-use super::macos::emit::Emitter;
 use super::termfix;
+use super::textout::{system_clipboard_copy, TextOut};
 use crate::config::Config;
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -48,11 +48,15 @@ pub struct VoiceChain {
 }
 
 impl VoiceChain {
-    pub fn start(device_name: &str) -> Self {
+    /// `make_out`：上屏执行器的工厂（在输出工作线程上调用，\n    /// 让 uinput / NXPoster 这类带线程亲和的对象建在自己线程上）
+    pub fn start(
+        device_name: &str,
+        make_out: impl FnOnce() -> Box<dyn TextOut> + Send + 'static,
+    ) -> Self {
         let handle = rt();
         Self {
             atvv: atvv::spawn(&handle, device_name.to_string()),
-            out_jobs: spawn_out_worker(),
+            out_jobs: spawn_out_worker(make_out),
             session: Mutex::new(None),
             dictating: AtomicBool::new(false),
         }
@@ -255,19 +259,21 @@ enum OutJob {
     PressEnter,
 }
 
-fn spawn_out_worker() -> std::sync::mpsc::Sender<OutJob> {
+fn spawn_out_worker(
+    make_out: impl FnOnce() -> Box<dyn TextOut> + Send + 'static,
+) -> std::sync::mpsc::Sender<OutJob> {
     let (tx, rx) = std::sync::mpsc::channel::<OutJob>();
     std::thread::Builder::new()
         .name("mojo-voice-out".into())
         .spawn(move || {
-            let emitter = Emitter::new();
+            let emitter = make_out();
             let mut on_screen = String::new();
             for job in rx {
                 match job {
                     OutJob::Reset => on_screen.clear(),
-                    OutJob::Update(t) => apply_diff(&emitter, &mut on_screen, &t),
+                    OutJob::Update(t) => apply_diff(emitter.as_ref(), &mut on_screen, &t),
                     OutJob::Finalize(t, enter) => {
-                        apply_diff(&emitter, &mut on_screen, &t);
+                        apply_diff(emitter.as_ref(), &mut on_screen, &t);
                         on_screen.clear();
                         if enter {
                             // 打完字稍等再回车，避免某些输入框没反应过来
@@ -281,7 +287,7 @@ fn spawn_out_worker() -> std::sync::mpsc::Sender<OutJob> {
                         on_screen.clear();
                     }
                     OutJob::TypeText(t) => emitter.type_text(&t),
-                    OutJob::Copy(t) => copy_to_clipboard(&t),
+                    OutJob::Copy(t) => system_clipboard_copy(&t),
                     OutJob::PressEnter => {
                         std::thread::sleep(std::time::Duration::from_millis(80));
                         emitter.send_key("return", &[]);
@@ -293,7 +299,7 @@ fn spawn_out_worker() -> std::sync::mpsc::Sender<OutJob> {
     tx
 }
 
-fn apply_diff(emitter: &Emitter, on_screen: &mut String, target: &str) {
+fn apply_diff(emitter: &dyn TextOut, on_screen: &mut String, target: &str) {
     let (backspaces, suffix) = livetype::diff_plan(on_screen, target);
     emitter.press_backspace(backspaces);
     emitter.type_text(&suffix);
@@ -314,15 +320,4 @@ mod tests {
     }
 }
 
-fn copy_to_clipboard(text: &str) {
-    use std::io::Write;
-    if let Ok(mut child) = std::process::Command::new("/usr/bin/pbcopy")
-        .stdin(std::process::Stdio::piped())
-        .spawn()
-    {
-        if let Some(mut stdin) = child.stdin.take() {
-            let _ = stdin.write_all(text.as_bytes());
-        }
-        let _ = child.wait();
-    }
-}
+

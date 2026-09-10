@@ -210,6 +210,10 @@ pub struct Emitter {
     nxp: NXPoster,
 }
 
+// CGEventPost / IOHIDPostEvent 本身是线程安全的（Quartz 事件投递无线程亲和）；
+// 我们的使用形态也是单线程持有（语音输出工作线程或引擎线程各持一份）。
+unsafe impl Send for Emitter {}
+
 impl Emitter {
     pub fn new() -> Self {
         let src = CGEventSource::new(CGEventSourceStateID::HIDSystemState)
@@ -302,6 +306,34 @@ impl Emitter {
 
     /// 连按 n 次退格（撤回已上屏的中间结果）
     pub fn press_backspace(&self, times: usize) {
+        self.press_backspace_impl(times)
+    }
+
+    pub fn copy_clipboard_text(&self, text: &str) {
+        crate::engine::textout::system_clipboard_copy(text)
+    }
+}
+
+impl crate::engine::textout::TextOut for Emitter {
+    fn press_backspace(&self, times: usize) {
+        Emitter::press_backspace(self, times)
+    }
+
+    fn type_text(&self, text: &str) {
+        Emitter::type_text(self, text)
+    }
+
+    fn send_key(&self, key: &str, mods: &[String]) {
+        Emitter::send_key(self, key, mods)
+    }
+
+    fn copy_clipboard(&self, text: &str) {
+        crate::engine::textout::system_clipboard_copy(text)
+    }
+}
+
+impl Emitter {
+    fn press_backspace_impl(&self, times: usize) {
         for _ in 0..times {
             self.send_key("delete", &[]);
         }

@@ -17,7 +17,7 @@ use crate::config::Config;
 use crate::engine::action::{self, Act};
 use crate::engine::log::{Log, VERBOSE};
 use crate::engine::state::{BindingShape, Eff, Machine, Timing};
-use crate::engine::{EngineStatus, PlatformEngine};
+use crate::engine::{uses_dictate, EngineStatus, PlatformEngine};
 
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -377,7 +377,9 @@ impl EngineCore {
         } else {
             Log::warn("未选择识别引擎（在面板的语音识别页选 火山 或 sherpa）");
         }
-        self.voice = Some(crate::engine::voice::VoiceChain::start(&name));
+        self.voice = Some(crate::engine::voice::VoiceChain::start(&name, || {
+            Box::new(emit::Emitter::new())
+        }));
     }
 
     /// 按住开始录音，松开识别上屏（端口 Swift handleDictate）
@@ -776,14 +778,6 @@ fn pretty_hid(page: u32, usage: u32) -> String {
 }
 
 /// 配置里是否把 power 键绑了真实动作（绑了才拦系统睡眠）
-/// 配置里是否有任何 dictate 绑定（决定是否初始化语音链路）
-fn uses_dictate(cfg: &Config) -> bool {
-    cfg.profiles
-        .iter()
-        .flat_map(|p| p.bindings.values())
-        .any(action::binding_contains_dictate)
-}
-
 fn config_binds_power_key(cfg: &Config) -> bool {
     cfg.profiles.iter().any(|p| {
         p.bindings.get("power").is_some_and(|b| {

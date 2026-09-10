@@ -11,17 +11,28 @@
 pub mod action;
 pub mod adpcm;
 pub mod asr;
+pub mod atvv;
 pub mod livetype;
 pub mod log;
 pub mod state;
 pub mod termfix;
+pub mod textout;
+pub mod voice;
 
 #[cfg(target_os = "macos")]
-pub mod atvv;
-#[cfg(target_os = "macos")]
 pub mod macos;
-#[cfg(target_os = "macos")]
-pub mod voice;
+#[cfg(target_os = "windows")]
+pub mod windows;
+#[cfg(target_os = "linux")]
+pub mod linux;
+
+/// 配置里是否有任何 dictate 绑定（各平台驱动据此决定是否初始化语音链路）
+pub(crate) fn uses_dictate(cfg: &Config) -> bool {
+    cfg.profiles
+        .iter()
+        .flat_map(|p| p.bindings.values())
+        .any(action::binding_contains_dictate)
+}
 
 use crate::config::Config;
 
