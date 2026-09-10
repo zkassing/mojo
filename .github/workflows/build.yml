@@ -48,8 +48,11 @@ jobs:
           cp -R /tmp/sherpa-onnx-v1.13.7-osx-arm64-shared/lib third_party/sherpa-onnx/
           cp -R /tmp/sherpa-onnx-v1.13.7-osx-arm64-shared/include third_party/sherpa-onnx/
 
+      # v1 暂不在 Windows/Linux 产物里带 sherpa：DLL 不随安装包打进去会导致
+      # 进程缺 DLL 无法启动；先以 stub 编译（云端 volc 引擎可用），
+      # 待真机验证后再做 DLL/.so 随包分发（Windows resources / Linux rpath 布局）
       - name: 下载 sherpa-onnx 动态库（Windows，MD-Release 动态 CRT）
-        if: runner.os == 'Windows'
+        if: false && runner.os == 'Windows'
         shell: bash
         run: |
           curl -sL --fail -o /tmp/sherpa.tar.bz2 \
@@ -60,7 +63,7 @@ jobs:
           cp -R /tmp/sherpa-onnx-v1.13.7-win-x64-shared-MD-Release/include third_party/sherpa-onnx-win-x64/
 
       - name: 下载 sherpa-onnx 动态库（Linux）
-        if: runner.os == 'Linux'
+        if: false && runner.os == 'Linux'
         run: |
           curl -sL --fail -o /tmp/sherpa.tar.bz2 \
             "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.7/sherpa-onnx-v1.13.7-linux-x64-shared.tar.bz2"
