@@ -8,6 +8,21 @@
 //! 各平台逐步实现这个 trait，上层代码完全不用改。
 #![allow(dead_code)]
 
+pub mod action;
+pub mod adpcm;
+pub mod asr;
+pub mod livetype;
+pub mod log;
+pub mod state;
+pub mod termfix;
+
+#[cfg(target_os = "macos")]
+pub mod atvv;
+#[cfg(target_os = "macos")]
+pub mod macos;
+#[cfg(target_os = "macos")]
+pub mod voice;
+
 use crate::config::Config;
 
 #[derive(Debug, Clone)]
@@ -17,7 +32,8 @@ pub struct DeviceButtonEvent {
     pub is_down: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase", tag = "kind")]
 pub enum EngineStatus {
     Stopped,
     Running {
@@ -46,7 +62,7 @@ pub trait PlatformEngine: Send + Sync {
 pub fn current() -> Box<dyn PlatformEngine> {
     #[cfg(target_os = "macos")]
     {
-        Box::new(mac::MacEngine::new())
+        Box::new(macos::MacEngine::new())
     }
     #[cfg(not(target_os = "macos"))]
     {
@@ -54,36 +70,11 @@ pub fn current() -> Box<dyn PlatformEngine> {
     }
 }
 
-#[cfg(target_os = "macos")]
-mod mac {
-    use super::*;
-
-    /// macOS 上第一阶段复用现成 Swift 守护进程（sidecar / 已安装 launchd）。
-    /// Rust 原生内核是后续移植项，先通过服务管理模块控制 Swift 版本。
-    pub struct MacEngine;
-
-    impl MacEngine {
-        pub fn new() -> Self {
-            Self
-        }
-    }
-
-    impl PlatformEngine for MacEngine {
-        fn supported(&self) -> bool {
-            true
-        }
-        fn start(&self, _config: &Config) -> anyhow::Result<()> {
-            // 实际启停由 service.rs 调用 launchctl 完成
-            Ok(())
-        }
-        fn stop(&self) {}
-        fn status(&self) -> EngineStatus {
-            EngineStatus::Running {
-                daemon_connected: true,
-                remote_connected: false,
-            }
-        }
-    }
+/// 全局唯一引擎实例（Tauri 命令层共用）
+pub fn shared() -> &'static dyn PlatformEngine {
+    use std::sync::OnceLock;
+    static ENGINE: OnceLock<Box<dyn PlatformEngine>> = OnceLock::new();
+    ENGINE.get_or_init(current).as_ref()
 }
 
 #[cfg(not(target_os = "macos"))]

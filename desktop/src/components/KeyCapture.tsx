@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Keyboard, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/// DOM KeyboardEvent.key → 守护进程 KeyMap 键名
+/// DOM KeyboardEvent.key → 引擎 KeyMap 键名
 const DOM_TO_DAEMON: Record<string, string> = {
   Enter: "return",
   Escape: "escape",
@@ -22,7 +22,7 @@ const DOM_TO_DAEMON: Record<string, string> = {
   Fn: "fn",
 };
 
-/// 守护进程键名 → 展示用名字
+/// 引擎键名 → 展示用名字
 const PRETTY: Record<string, string> = {
   return: "Return",
   escape: "Esc",
@@ -60,7 +60,7 @@ const MOD_DOM: Record<string, string> = {
   Meta: "cmd",
 };
 
-/// Shift+符号键 产生的字符 → 基础键（守护进程键码表认基础键，
+/// Shift+符号键 产生的字符 → 基础键（引擎键码表认基础键，
 /// Shift 会由 collectMods 记录，组合出正确快捷键）
 const SHIFTED_CHAR: Record<string, string> = {
   "?": "/",
@@ -99,7 +99,7 @@ function prettyKey(k: string): string {
 }
 
 interface Props {
-  /** 当前键名 + 修饰键（守护进程格式） */
+  /** 当前键名 + 修饰键（引擎格式） */
   keyName?: string;
   mods?: string[];
   onCapture: (key: string, mods: string[]) => void;

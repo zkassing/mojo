@@ -131,6 +131,32 @@ pub struct Binding {
     pub repeat: Option<bool>,
 }
 
+impl VoiceConfig {
+    /// 引擎判断（口径同 Swift）
+    pub fn uses_volc(&self) -> bool {
+        self.engine.eq_ignore_ascii_case("volc")
+            && !self.volc_app_id.is_empty()
+            && !self.volc_access_token.is_empty()
+    }
+
+    pub fn uses_sherpa(&self) -> bool {
+        self.engine.eq_ignore_ascii_case("sherpa")
+    }
+
+    pub fn sherpa_dir(&self) -> String {
+        if !self.sherpa_model_dir.is_empty() {
+            return self.sherpa_model_dir.clone();
+        }
+        dirs::home_dir()
+            .map(|h| {
+                h.join(".config/mojo/models/sherpa-onnx-x-asr-480ms-zh_int8-2025-12-26")
+                    .to_string_lossy()
+                    .into_owned()
+            })
+            .unwrap_or_default()
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileMatch {
@@ -171,6 +197,11 @@ pub struct FullAction {
     pub command: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub target: Option<String>,
+    /// open 动作的别名（与 Swift schema 对齐：target ?? app ?? url）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dx: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -188,6 +219,51 @@ impl Config {
     pub fn builtin_default() -> Config {
         serde_json::from_str(include_str!("../default-config.json"))
             .expect("内置默认配置必须合法")
+    }
+
+    /// 原始信号 -> 逻辑按键名（反查表），与 Swift `rawToButton()` 一致
+    pub fn raw_to_button(&self) -> std::collections::HashMap<String, String> {
+        let mut m = std::collections::HashMap::new();
+        for (name, raws) in &self.buttons {
+            for r in raws {
+                m.insert(r.to_lowercase(), name.clone());
+            }
+        }
+        m
+    }
+
+    /// 选出匹配当前前台 App 的方案：有 match 命中的优先，
+    /// 其次名为 default 的，再次第一个无 match 的。与 Swift `resolveProfile` 一致。
+    pub fn resolve_profile(&self, bundle_id: Option<&str>, app_name: Option<&str>) -> Option<&Profile> {
+        for p in &self.profiles {
+            if p.match_
+                .as_ref()
+                .is_some_and(|m| m.matches(bundle_id, app_name))
+            {
+                return Some(p);
+            }
+        }
+        self.profiles
+            .iter()
+            .find(|p| p.name.eq_ignore_ascii_case("default"))
+            .or_else(|| self.profiles.iter().find(|p| p.match_.is_none()))
+    }
+}
+
+impl ProfileMatch {
+    /// bundleId / appName 任一命中即匹配（不区分大小写）
+    pub fn matches(&self, bundle_id: Option<&str>, app_name: Option<&str>) -> bool {
+        if let (Some(ids), Some(b)) = (&self.bundle_ids, bundle_id) {
+            if ids.iter().any(|x| x.eq_ignore_ascii_case(b)) {
+                return true;
+            }
+        }
+        if let (Some(names), Some(n)) = (&self.app_names, app_name) {
+            if names.iter().any(|x| x.eq_ignore_ascii_case(n)) {
+                return true;
+            }
+        }
+        false
     }
 }
 

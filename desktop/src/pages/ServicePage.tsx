@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
-import { RefreshCw, Square, RotateCw, AlertTriangle } from "lucide-react";
+import { Square, AlertTriangle, Play, Cpu, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../lib/api";
-import type { ServiceStatus } from "../lib/types";
+import type { EngineStatus } from "../lib/types";
 import { PageShell } from "./MappingPage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export default function ServicePage() {
-  const [st, setSt] = useState<ServiceStatus | null>(null);
+  const [engine, setEngine] = useState<EngineStatus | null>(null);
   const [platform, setPlatform] = useState("macos");
   const [supported, setSupported] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
-    setSt(await api.serviceStatus().catch(() => null));
+    setEngine(await api.engineRuntimeStatus().catch(() => null));
   }, []);
 
   useEffect(() => {
@@ -26,53 +26,30 @@ export default function ServicePage() {
     return () => clearInterval(t);
   }, [refresh]);
 
-  const restart = async () => {
+  const engineRunning = engine?.kind === "running";
+
+  const engineToggle = async () => {
     setBusy(true);
     try {
-      await api.serviceRestart();
-      toast.success("守护进程已重启");
-      setTimeout(refresh, 800);
+      if (engineRunning) {
+        await api.engineStop();
+        toast("引擎已停止");
+      } else {
+        await api.engineStart();
+        toast.success("引擎已启动");
+      }
+      setTimeout(refresh, 500);
     } catch (e) {
       toast.error(String(e));
     } finally {
       setBusy(false);
     }
   };
-
-  const stop = async () => {
-    setBusy(true);
-    try {
-      await api.serviceStop();
-      toast("已发送停止信号");
-      setTimeout(refresh, 800);
-    } catch (e) {
-      toast.error(String(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const statusBadge = st?.running ? (
-    <Badge variant="secondary" className="gap-1.5">
-      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-      运行中
-    </Badge>
-  ) : st?.installed ? (
-    <Badge variant="secondary" className="gap-1.5">
-      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-      已安装未运行
-    </Badge>
-  ) : (
-    <Badge variant="destructive" className="gap-1.5">
-      <span className="h-1.5 w-1.5 rounded-full" />
-      未运行
-    </Badge>
-  );
 
   return (
     <PageShell
       title="服务与状态"
-      desc="后台守护进程负责蓝牙连接、按键拦截和语音识别。"
+      desc="内置引擎负责蓝牙连接、按键拦截和语音识别，常驻托盘运行。"
     >
       <div className="max-w-2xl space-y-5">
         {!supported && (
@@ -95,25 +72,49 @@ export default function ServicePage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-[15px]">
-              守护进程
-              {statusBadge}
+              <span className="flex items-center gap-2">
+                <Cpu className="h-4 w-4 text-muted-foreground" />
+                引擎
+              </span>
+              {engineRunning ? (
+                <Badge variant="secondary" className="gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  运行中
+                  {engine.kind === "running" && engine.remoteConnected
+                    ? " · 遥控器已连接"
+                    : ""}
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-400" />
+                  未运行
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <div className="flex gap-2.5">
-              <Button onClick={restart} disabled={busy}>
-                <RotateCw className="h-4 w-4" />
-                重启守护进程
-              </Button>
-              <Button variant="outline" onClick={stop} disabled={busy}>
-                <Square className="h-4 w-4" />
-                停止
+              <Button
+                variant={engineRunning ? "outline" : "default"}
+                onClick={engineToggle}
+                disabled={busy}
+              >
+                {engineRunning ? (
+                  <Square className="h-4 w-4" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+                {engineRunning ? "停止引擎" : "启动引擎"}
               </Button>
               <Button variant="ghost" onClick={refresh}>
                 <RefreshCw className="h-4 w-4" />
                 刷新状态
               </Button>
             </div>
+            <p className="text-[12px] leading-relaxed text-muted-foreground">
+              按键映射 + 语音转文字均由内置引擎处理。首次启动需在
+              「辅助功能」「输入监控」「蓝牙」中授权本应用。
+            </p>
           </CardContent>
         </Card>
       </div>

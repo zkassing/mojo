@@ -61,7 +61,7 @@ export default function LogsPage() {
   return (
     <PageShell
       title="实时日志"
-      desc="守护进程输出，排查按键、蓝牙、识别问题用。"
+      desc="引擎输出，排查按键、蓝牙、识别问题用。"
     >
       <div className="mb-3 flex items-center justify-between">
         <label className="flex items-center gap-2 text-[13px] text-muted-foreground">
@@ -87,7 +87,7 @@ export default function LogsPage() {
       >
         {lines.length === 0 && (
           <span className="text-zinc-600">
-            暂无日志（守护进程可能未运行）
+            暂无日志（引擎可能未运行）
           </span>
         )}
         {lines.map((l, i) => {

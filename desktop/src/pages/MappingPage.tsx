@@ -86,7 +86,7 @@ export default function MappingPage() {
   const doSave = async () => {
     try {
       await save();
-      toast.success("配置已保存，守护进程会自动热重载");
+      toast.success("配置已保存，引擎会自动热重载");
     } catch (e) {
       toast.error(String(e));
     }

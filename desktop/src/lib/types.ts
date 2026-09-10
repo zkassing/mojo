@@ -69,12 +69,11 @@ export interface Config {
   profiles: Profile[];
 }
 
-export interface ServiceStatus {
-  platformSupported: boolean;
-  installed: boolean;
-  running: boolean;
-  label: string;
-}
+/** 内置 Rust 引擎运行状态（tag = kind） */
+export type EngineStatus =
+  | { kind: "stopped" }
+  | { kind: "running"; daemonConnected: boolean; remoteConnected: boolean }
+  | { kind: "unsupported"; reason: string };
 
 export interface AsrTestResult {
   ok: boolean;

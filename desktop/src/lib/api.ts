@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import type {
   Config,
-  ServiceStatus,
+  EngineStatus,
   AsrTestResult,
   AppInfo,
 } from "./types";
@@ -39,9 +39,10 @@ export const api = {
   /** 列出本机已安装的应用（macOS 扫描 Applications 目录） */
   listApps: () => invoke<AppInfo[]>("list_apps"),
 
-  serviceStatus: () => invoke<ServiceStatus>("service_status"),
-  serviceRestart: () => invoke<void>("service_restart"),
-  serviceStop: () => invoke<void>("service_stop"),
+  /** 内置引擎（按键映射 + 语音转文字） */
+  engineStart: () => invoke<void>("engine_start"),
+  engineStop: () => invoke<void>("engine_stop"),
+  engineRuntimeStatus: () => invoke<EngineStatus>("engine_runtime_status"),
 
   logTail: (lines = 300) => invoke<string>("log_tail", { lines }),
   logFollow: () => invoke<void>("log_follow"),

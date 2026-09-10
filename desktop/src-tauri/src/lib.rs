@@ -3,7 +3,6 @@
 mod asr;
 mod config;
 mod engine;
-mod service;
 mod store;
 
 use config::Config;
@@ -30,7 +29,12 @@ fn config_load() -> Result<Config, String> {
 
 #[tauri::command]
 fn config_save(cfg: Config) -> Result<(), String> {
-    store::save(&cfg).map_err(|e| e.to_string())
+    store::save(&cfg).map_err(|e| e.to_string())?;
+    // 引擎在跑时热重载（等价 Swift 守护进程的文件监听 reload）
+    if matches!(engine::shared().status(), engine::EngineStatus::Running { .. }) {
+        let _ = engine::shared().start(&cfg);
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -176,22 +180,24 @@ fn plist_buddy(plist: &std::path::Path, key: &str) -> Option<String> {
 
 #[tauri::command]
 fn engine_supported() -> bool {
-    engine::current().supported()
+    engine::shared().supported()
+}
+
+/// 启动内置引擎（幂等；已在跑则热重载配置）
+#[tauri::command]
+fn engine_start() -> Result<(), String> {
+    let cfg = store::load().map_err(|e| e.to_string())?;
+    engine::shared().start(&cfg).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn service_status() -> service::ServiceStatus {
-    service::status()
+fn engine_stop() {
+    engine::shared().stop()
 }
 
 #[tauri::command]
-fn service_restart() -> Result<(), String> {
-    service::kickstart().map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn service_stop() -> Result<(), String> {
-    service::stop_service().map_err(|e| e.to_string())
+fn engine_runtime_status() -> engine::EngineStatus {
+    engine::shared().status()
 }
 
 /// 读取日志尾部（用于“实时日志”页初始内容）
@@ -367,6 +373,113 @@ async fn sherpa_model_download(app: tauri::AppHandle) -> Result<String, String> 
     Ok(models.join(DIR_NAME).to_string_lossy().into_owned())
 }
 
+// MARK: - 托盘
+
+/// 显示并聚焦主窗口
+fn show_main_window(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.unminimize();
+        let _ = w.show();
+        let _ = w.set_focus();
+    }
+}
+
+/// 切换内置引擎启停（托盘菜单用；启动失败只记日志不弹窗）
+fn toggle_engine() {
+    match engine::shared().status() {
+        engine::EngineStatus::Running { .. } => engine::shared().stop(),
+        engine::EngineStatus::Unsupported { .. } => {}
+        engine::EngineStatus::Stopped => {
+            if let Ok(cfg) = store::load() {
+                if let Err(e) = engine::shared().start(&cfg) {
+                    engine::log::Log::error(&format!("托盘启动引擎失败: {e}"));
+                }
+            }
+        }
+    }
+}
+
+/// 构建系统托盘：状态行 + 显示面板 + 引擎启停 + 退出
+fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
+    use tauri::menu::{CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
+    use tauri::tray::TrayIconBuilder;
+    use tauri_plugin_autostart::ManagerExt;
+
+    let status = MenuItemBuilder::with_id("engine_status", "引擎：已停止")
+        .enabled(false)
+        .build(app)?;
+    let show = MenuItemBuilder::with_id("show", "显示面板").build(app)?;
+    let toggle = MenuItemBuilder::with_id("engine_toggle", "启动引擎").build(app)?;
+    let autostart = CheckMenuItemBuilder::with_id("autostart", "开机自启")
+        .checked(false)
+        .build(app)?;
+    let sep = PredefinedMenuItem::separator(app)?;
+    let quit = MenuItemBuilder::with_id("quit", "退出 Mojo").build(app)?;
+    let menu = MenuBuilder::new(app)
+        .items(&[&status, &show, &toggle, &autostart, &sep, &quit])
+        .build()?;
+
+    // macOS 用单色模板图标（随深浅色菜单栏自适应），其他平台用彩色图标
+    let icon_bytes: &[u8] = if cfg!(target_os = "macos") {
+        include_bytes!("../icons/tray-icon.png")
+    } else {
+        include_bytes!("../icons/32x32.png")
+    };
+    let icon = tauri::image::Image::from_bytes(icon_bytes)?;
+
+    TrayIconBuilder::with_id("main")
+        .icon(icon)
+        .icon_as_template(cfg!(target_os = "macos"))
+        .menu(&menu)
+        .tooltip("Mojo 小米蓝牙语音遥控器")
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "quit" => app.exit(0),
+            "show" => show_main_window(app),
+            "engine_toggle" => toggle_engine(),
+            "autostart" => {
+                let m = app.autolaunch();
+                let r = match m.is_enabled() {
+                    Ok(true) => m.disable(),
+                    _ => m.enable(),
+                };
+                if let Err(e) = r {
+                    engine::log::Log::error(&format!("切换开机自启失败: {e}"));
+                }
+            }
+            _ => {}
+        })
+        .build(app)?;
+
+    // 周期刷新状态行 / 启停项文案 / 自启勾选（引擎状态和遥控器连接都可能异步变化）
+    let handle = app.handle().clone();
+    tauri::async_runtime::spawn(async move {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            let _ = autostart.set_checked(handle.autolaunch().is_enabled().unwrap_or(false));
+            let (s, t) = match engine::shared().status() {
+                engine::EngineStatus::Running {
+                    remote_connected, ..
+                } => (
+                    if remote_connected {
+                        "引擎：运行中 · 遥控器已连接".to_string()
+                    } else {
+                        "引擎：运行中".to_string()
+                    },
+                    "停止引擎",
+                ),
+                engine::EngineStatus::Stopped => ("引擎：已停止".to_string(), "启动引擎"),
+                engine::EngineStatus::Unsupported { .. } => {
+                    ("引擎：此平台暂不支持".to_string(), "启动引擎")
+                }
+            };
+            let _ = status.set_text(s);
+            let _ = toggle.set_text(t);
+        }
+    });
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -382,12 +495,38 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
+        // 开机自启：macOS 走 LaunchAgent（~/Library/LaunchAgents/com.zyk.mojo.plist）
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .setup(|app| {
             #[cfg(debug_assertions)]
             if let Some(win) = app.get_webview_window("main") {
                 win.open_devtools();
             }
+            setup_tray(app)?;
+            // 常驻后台形态：macOS 上隐藏 Dock 图标，只留菜单栏托盘
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            // 即开即用：已有配置文件就自动拉起引擎（开机自启才有意义）
+            if engine::shared().supported()
+                && store::config_path().map(|p| p.exists()).unwrap_or(false)
+            {
+                if let Ok(cfg) = store::load() {
+                    if let Err(e) = engine::shared().start(&cfg) {
+                        engine::log::Log::error(&format!("启动时自动拉起引擎失败: {e}"));
+                    }
+                }
+            }
             Ok(())
+        })
+        // 关窗不退 App：隐藏到托盘（「退出 Mojo」菜单才真正退出）
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
         })
         .invoke_handler(tauri::generate_handler![
             config_load,
@@ -399,9 +538,9 @@ pub fn run() {
             resolve_app,
             list_apps,
             engine_supported,
-            service_status,
-            service_restart,
-            service_stop,
+            engine_start,
+            engine_stop,
+            engine_runtime_status,
             log_tail,
             log_follow,
             volc_test,

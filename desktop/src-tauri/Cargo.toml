@@ -12,9 +12,10 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+cc = "1"
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-shell = "2"
 serde = { version = "1", features = ["derive"] }
@@ -27,6 +28,28 @@ thiserror = "1"
 dirs = "5"
 flate2 = "1"
 tauri-plugin-single-instance = "2.0.0-rc.5"
+uuid = { version = "1.20.0", features = ["v4"] }
+tauri-plugin-autostart = "2.0.0-rc.1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-graphics = { version = "0.25", features = ["highsierra"] }
+core-foundation = "0.10"
+core-foundation-sys = "0.8"
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", features = ["NSString", "NSGeometry"] }
+objc2-app-kit = { version = "0.3", features = [
+    "NSEvent",
+    "NSWorkspace",
+    "NSRunningApplication",
+    "NSGraphicsContext",
+    "objc2-core-graphics",
+] }
+foreign-types = "0.5"
+objc2-core-graphics = { version = "0.3", features = ["CGEvent", "CGEventTypes"] }
+btleplug = "0.13.0"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
 [profile.release]
 opt-level = "s"
