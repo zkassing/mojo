@@ -139,6 +139,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      # 需要仓库里的 desktop/scripts/gen-latest.py，必须先 checkout
+      - uses: actions/checkout@v4
+
       - name: 下载全部平台产物
         uses: actions/download-artifact@v4
         with:
