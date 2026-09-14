@@ -10,13 +10,14 @@
 use super::ffi;
 use serde::Serialize;
 
-/// IOHIDRequestAccess / IOHIDCheckAccess 的设备类型
-const K_IO_HID_DEVICE_TYPE_GENERIC: i32 = 0;
+/// IOHIDRequestType（IOHIDLib.h）
+/// 输入监控对应 ListenEvent（PostEvent=0 是投递事件，不是这里要的）
+const K_IO_HID_REQUEST_TYPE_LISTEN_EVENT: i32 = 1;
 
-// IOHIDAccessStatus
-const STATUS_NOT_DETERMINED: i32 = 0;
-const STATUS_DENIED: i32 = 1;
-const STATUS_ALLOWED: i32 = 2;
+// IOHIDAccessType：IOHIDCheckAccess 的返回值
+const K_IO_HID_ACCESS_TYPE_GRANTED: i32 = 0;
+const K_IO_HID_ACCESS_TYPE_DENIED: i32 = 1;
+const K_IO_HID_ACCESS_TYPE_UNKNOWN: i32 = 2;
 
 #[link(name = "ApplicationServices", kind = "framework")]
 extern "C" {
@@ -46,11 +47,12 @@ fn check_accessibility() -> bool {
 }
 
 fn check_input_monitoring() -> Option<bool> {
-    // 仅查询当前授权状态，不调用 IOHIDRequestAccess（那会弹窗）
-    match unsafe { ffi::IOHIDCheckAccess(K_IO_HID_DEVICE_TYPE_GENERIC) } {
-        STATUS_ALLOWED => Some(true),
-        STATUS_DENIED => Some(false),
-        STATUS_NOT_DETERMINED => Some(false), // 还没申请过，等价于不可用
+    // 仅查询当前授权状态，不调用 IOHIDRequestAccess（那会弹窗）。
+    // Granted=有；Denied=明确拒绝（报警告）；Unknown=尚未决定（不误报）。
+    match unsafe { ffi::IOHIDCheckAccess(K_IO_HID_REQUEST_TYPE_LISTEN_EVENT) } {
+        K_IO_HID_ACCESS_TYPE_GRANTED => Some(true),
+        K_IO_HID_ACCESS_TYPE_DENIED => Some(false),
+        K_IO_HID_ACCESS_TYPE_UNKNOWN => None,
         _ => None,
     }
 }
