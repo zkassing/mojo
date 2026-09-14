@@ -50,7 +50,7 @@
       "endpoints": [
         "https://github.com/zkassing/mojo/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlGNjM0MzA3RDNGQ0JGNDUKUldSRnYvelRCME9qbnplOEgxOUpoVG5DOUg5djBsdnFQdTQrMmpyNFdlckNRL0hQbytaNy8wMFUK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU3QjA5QURFREM1ODcyRjYKUldUMmNsamMzcHF3VjNyMER5cnFtdkMvU3lkS0U5bUhUWUIxb2t1K3VJODBOS3RHMW52NWhVR0cK",
       "windows": {
         "installMode": "passive"
       }
