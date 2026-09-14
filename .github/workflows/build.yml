@@ -1,9 +1,10 @@
 name: 打包
 
 on:
+  # 只在打 v* 标签时运行（提交 main 不触发）
   push:
-    branches: [main]
     tags: ["v*"]
+  # 保留手动触发入口，便于不发版测试构建
   workflow_dispatch:
 
 jobs:
