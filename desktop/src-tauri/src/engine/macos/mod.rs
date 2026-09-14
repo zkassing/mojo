@@ -11,6 +11,7 @@ pub mod emit;
 mod ffi;
 mod frontmost;
 mod hid;
+pub(crate) mod perms;
 mod power;
 
 use crate::config::Config;

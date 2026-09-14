@@ -166,6 +166,7 @@ extern "C" {
         options: IOOptionBits,
     ) -> kern_return_t;
     pub fn IOHIDRequestAccess(request_type: i32) -> bool;
+    pub fn IOHIDCheckAccess(request_type: i32) -> i32;
 
     // ---- pwr_mgt：电源键睡眠拦截 ----
     pub fn IORegisterForSystemPower(

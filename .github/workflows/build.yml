@@ -165,37 +165,9 @@ jobs:
           find artifacts -name '*.exe' -exec cp {} release/ \;
           find artifacts -name '*.AppImage' -exec cp {} release/ \;
           ls -la release
-
-          VERSION="${TAG#v}"
-          BASE="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
-          read_sig() { tr -d '\n\r' < "$1"; }
-          python3 - "$VERSION" "$BASE" release/latest.json" <<'PY'
-          import json, pathlib, sys
-          version, base, out = sys.argv[1], sys.argv[2], sys.argv[3]
-          def sig(name):
-              p = pathlib.Path("release") / (name + ".sig")
-              return p.read_text().strip()
-          platforms = {
-              "darwin-aarch64": {
-                  "signature": sig("mojo-macos-arm64.app.tar.gz"),
-                  "url": f"{base}/mojo-macos-arm64.app.tar.gz",
-              },
-              "windows-x86_64": {
-                  "signature": sig("mojo-windows-x64-setup.nsis.zip"),
-                  "url": f"{base}/mojo-windows-x64-setup.nsis.zip",
-              },
-              "linux-x86_64": {
-                  "signature": sig("mojo-linux-x86_64.AppImage.tar.gz"),
-                  "url": f"{base}/mojo-linux-x86_64.AppImage.tar.gz",
-              },
-          }
-          pathlib.Path(out).write_text(json.dumps({
-              "version": version,
-              "notes": "详见本 Release 的更新说明",
-              "platforms": platforms,
-          }, ensure_ascii=False, indent=2) + "\n")
-          print(pathlib.Path(out).read_text())
-          PY
+          VERSION="${TAG#v}" \
+          BASE="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}" \
+            python3 desktop/scripts/gen-latest.py release release/latest.json
 
       - name: 创建 / 更新 GitHub Release
         uses: softprops/action-gh-release@v2

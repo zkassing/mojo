@@ -16,6 +16,12 @@ export const api = {
   configPath: () => invoke<string>("config_path_string"),
   platform: () => invoke<string>("platform_name"),
   engineSupported: () => invoke<boolean>("engine_supported"),
+  permissionStatus: () =>
+    invoke<{ accessibility: boolean | null; inputMonitoring: boolean | null } | null>(
+      "permission_status"
+    ),
+  openPermissionSettings: (which: "input" | "accessibility") =>
+    invoke<void>("open_permission_settings", { which }),
 
   /** 弹出系统文件选择器选一个应用，返回它的 Bundle ID / 名字 */
   pickApp: async (platform: string): Promise<AppInfo | null> => {

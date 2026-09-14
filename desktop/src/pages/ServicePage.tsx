@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Square, AlertTriangle, Play, Cpu, RefreshCw, Download } from "lucide-react";
+import { Square, AlertTriangle, Play, Cpu, RefreshCw, Download, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../lib/api";
 import { checkForUpdate } from "../lib/updater";
@@ -9,12 +9,41 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+function PermissionWarn({
+  title,
+  desc,
+  onClick,
+}: {
+  title: string;
+  desc: string;
+  onClick: () => void;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+      <div className="flex-1">
+        <div className="text-[13px] font-medium text-red-300">{title}</div>
+        <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
+          {desc}
+        </p>
+      </div>
+      <Button size="sm" variant="outline" onClick={onClick}>
+        去授权
+      </Button>
+    </div>
+  );
+}
+
 export default function ServicePage() {
   const [engine, setEngine] = useState<EngineStatus | null>(null);
   const [platform, setPlatform] = useState("macos");
   const [supported, setSupported] = useState(true);
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [perms, setPerms] = useState<{
+    accessibility: boolean | null;
+    inputMonitoring: boolean | null;
+  } | null>(null);
 
   const refresh = useCallback(async () => {
     setEngine(await api.engineRuntimeStatus().catch(() => null));
@@ -27,6 +56,22 @@ export default function ServicePage() {
     const t = setInterval(refresh, 2500);
     return () => clearInterval(t);
   }, [refresh]);
+
+  // macOS 权限状态轮询（授权/重构建 App 后权限可能变化）
+  useEffect(() => {
+    if (platform !== "macos") return;
+    const query = () =>
+      api
+        .permissionStatus()
+        .then(setPerms)
+        .catch(() => setPerms(null));
+    query();
+    const t = setInterval(query, 3000);
+    return () => clearInterval(t);
+  }, [platform]);
+
+  const noInput = perms?.inputMonitoring === false;
+  const noAx = perms?.accessibility === false;
 
   const engineRunning = engine?.kind === "running";
 
@@ -54,6 +99,31 @@ export default function ServicePage() {
       desc="内置引擎负责蓝牙连接、按键拦截和语音识别，常驻托盘运行。"
     >
       <div className="max-w-2xl space-y-5">
+        {(noInput || noAx) && (
+          <Card className="border-red-500/40 bg-red-500/5">
+            <CardContent className="space-y-3 pt-5">
+              {noAx && (
+                <PermissionWarn
+                  title="缺少「辅助功能」权限"
+                  desc="无法拦截和注入按键，方向键/确定键等映射不会生效。"
+                  onClick={() => api.openPermissionSettings("accessibility")}
+                />
+              )}
+              {noInput && (
+                <PermissionWarn
+                  title="缺少「输入监控」权限"
+                  desc="返回键（back，usage 0xF1）只能通过 HID 直读通道接收，未授权时该键完全无反应。"
+                  onClick={() => api.openPermissionSettings("input")}
+                />
+              )}
+              <p className="text-[12px] leading-relaxed text-muted-foreground">
+                授权后请在本页点「停止引擎」再「启动引擎」（或退出重开）。
+                若列表里已有 Mojo 且开关已打开却仍提示：先删掉旧条目再重新添加 ——
+                重新构建/更新 App 后旧授权会失效。
+              </p>
+            </CardContent>
+          </Card>
+        )}
         {!supported && (
           <Card>
             <CardHeader>

@@ -68,6 +68,26 @@ fn platform_name() -> &'static str {
     }
 }
 
+/// 查询 macOS 隐私权限（辅助功能 / 输入监控）；其他平台返回 null
+#[tauri::command]
+fn permission_status() -> Option<serde_json::Value> {
+    #[cfg(target_os = "macos")]
+    {
+        Some(serde_json::to_value(engine::macos::perms::check()).ok()?)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        None
+    }
+}
+
+/// 打开 macOS 隐私设置面板（which: input | accessibility）
+#[tauri::command]
+fn open_permission_settings(which: String) {
+    #[cfg(target_os = "macos")]
+    engine::macos::perms::open_settings(&which);
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct AppInfo {
@@ -755,6 +775,8 @@ pub fn run() {
             resolve_app,
             list_apps,
             engine_supported,
+            permission_status,
+            open_permission_settings,
             engine_start,
             engine_stop,
             engine_runtime_status,
