@@ -8,6 +8,10 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+/// 内置下载器安装的 sherpa 模型目录名（必须与下载器、模型状态检测一致）。
+pub const SHERPA_MODEL_DIR_NAME: &str =
+    "sherpa-onnx-x-asr-480ms-streaming-zipformer-transducer-zh-en-punct-int8-2026-06-05";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub device: DeviceConfig,
@@ -149,7 +153,8 @@ impl VoiceConfig {
         }
         dirs::home_dir()
             .map(|h| {
-                h.join(".config/mojo/models/sherpa-onnx-x-asr-480ms-zh_int8-2025-12-26")
+                h.join(".config/mojo/models")
+                    .join(crate::config::SHERPA_MODEL_DIR_NAME)
                     .to_string_lossy()
                     .into_owned()
             })

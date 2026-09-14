@@ -344,7 +344,8 @@ fn sherpa_dir(custom_dir: Option<String>) -> String {
     custom_dir.filter(|s| !s.is_empty()).unwrap_or_else(|| {
         dirs::home_dir()
             .map(|h| {
-                h.join(".config/mojo/models/sherpa-onnx-x-asr-480ms-streaming-zipformer-transducer-zh-en-punct-int8-2026-06-05")
+                h.join(".config/mojo/models")
+                    .join(crate::config::SHERPA_MODEL_DIR_NAME)
                     .to_string_lossy()
                     .into_owned()
             })
