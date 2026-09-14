@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { Square, AlertTriangle, Play, Cpu, RefreshCw } from "lucide-react";
+import { Square, AlertTriangle, Play, Cpu, RefreshCw, Download } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../lib/api";
+import { checkForUpdate } from "../lib/updater";
 import type { EngineStatus } from "../lib/types";
 import { PageShell } from "./MappingPage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ export default function ServicePage() {
   const [platform, setPlatform] = useState("macos");
   const [supported, setSupported] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   const refresh = useCallback(async () => {
     setEngine(await api.engineRuntimeStatus().catch(() => null));
@@ -114,6 +116,35 @@ export default function ServicePage() {
             <p className="text-[12px] leading-relaxed text-muted-foreground">
               按键映射 + 语音转文字均由内置引擎处理。首次启动需在
               「辅助功能」「输入监控」「蓝牙」中授权本应用。
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-[15px]">
+              <Download className="h-4 w-4 text-muted-foreground" />
+              应用更新
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex gap-2.5">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setChecking(true);
+                  checkForUpdate(false).finally(() => setChecking(false));
+                }}
+                disabled={checking}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${checking ? "animate-spin" : ""}`}
+                />
+                {checking ? "检查中…" : "检查更新"}
+              </Button>
+            </div>
+            <p className="text-[12px] leading-relaxed text-muted-foreground">
+              启动时会自动检查；新版本下载完成后需重启应用生效。
             </p>
           </CardContent>
         </Card>

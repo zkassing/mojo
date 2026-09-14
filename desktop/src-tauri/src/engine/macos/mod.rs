@@ -57,6 +57,11 @@ pub(super) fn make_timer(
             timer,
             kCFRunLoopCommonModes,
         );
+        // Create Rule：CFRunLoopTimerCreate 返回 +1，AddTimer 只是 runloop 再
+        // retain 一份。这里立即平衡掉 Create 的引用，交给 runloop 持有；
+        // 之后 invalidate 时 runloop 释放最后一份，对象才真正销毁。
+        // 不这么做，每个长按/双击/连发定时器都会永久泄漏一个 timer 对象。
+        ffi::CFRelease(timer as _);
         timer
     }
 }
@@ -609,7 +614,7 @@ impl EngineCore {
         };
         let Some(binding) = profile.bindings.get(&button) else {
             if is_down {
-                Log::info(&format!("[{}] {button} 无绑定，放行原键", profile.name));
+                Log::debug(&format!("[{}] {button} 无绑定，放行原键", profile.name));
             }
             return false;
         };

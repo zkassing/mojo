@@ -46,6 +46,7 @@ export const api = {
 
   logTail: (lines = 300) => invoke<string>("log_tail", { lines }),
   logFollow: () => invoke<void>("log_follow"),
+  logUnfollow: () => invoke<void>("log_unfollow"),
   onLogLine: (cb: (line: string) => void) =>
     listen<string>("log-line", (e) => cb(e.payload)),
 
@@ -67,8 +68,8 @@ export const api = {
 
   sherpaModelDownload: () => invoke<string>("sherpa_model_download"),
 
-  onSherpaProgress: (cb: (p: { downloaded: number; total: number }) => void) =>
-    listen<{ downloaded: number; total: number }>(
+  onSherpaProgress: (cb: (p: { downloaded: number; total: number; error?: string }) => void) =>
+    listen<{ downloaded: number; total: number; error?: string }>(
       "sherpa-download-progress",
       (e) => cb(e.payload)
     ),

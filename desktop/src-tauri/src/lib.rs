@@ -214,28 +214,30 @@ fn log_tail(lines: usize) -> Result<String, String> {
     Ok(v[start..].join("\n"))
 }
 
-/// 开始跟踪日志，新增行通过事件 `log-line` 推给前端
-#[tauri::command]
 /// 开始跟踪日志，新增行通过事件 `log-line` 推给前端。
 /// 全局只跑一个线程：前端每次进日志页都会调本命令，
 /// 不守卫的话多个 tail 线程会把同一行推 N 遍。
+/// 配对的 [`log_unfollow`] 用于引用计数；最后一个前端离开后，
+/// 线程空闲一小段时间自动退出（窗口隐藏后不再唤醒 webview）。
+static FOLLOW_RUNNING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static FOLLOW_REFS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
+#[tauri::command]
 fn log_follow(app: AppHandle) {
+    use std::sync::atomic::Ordering;
+    FOLLOW_REFS.fetch_add(1, Ordering::SeqCst);
+    if FOLLOW_RUNNING.swap(true, Ordering::SeqCst) {
+        return; // 线程已在跑，只增加引用计数
+    }
     use std::io::{BufRead, BufReader, Seek};
-    use std::sync::atomic::{AtomicBool, Ordering};
     use std::thread;
     use std::time::Duration;
 
-    static FOLLOWING: AtomicBool = AtomicBool::new(false);
-    if FOLLOWING.swap(true, Ordering::SeqCst) {
-        return;
-    }
-
     thread::spawn(move || {
-        // 线程退出时复位，允许下次重新跟随
         struct Reset;
         impl Drop for Reset {
             fn drop(&mut self) {
-                FOLLOWING.store(false, Ordering::SeqCst);
+                FOLLOW_RUNNING.store(false, Ordering::SeqCst);
             }
         }
         let _reset = Reset;
@@ -252,11 +254,25 @@ fn log_follow(app: AppHandle) {
         // 从文件末尾开始，只推新增内容
         let _ = reader.seek(std::io::SeekFrom::End(0));
 
+        // 连续空闲计数：没有前端监听（ref==0）超过约 3s 就退出线程。
+        // 轮询间隔 300ms，10 次 ≈ 3s，足以跨过 React StrictMode 双挂载/unmount。
+        let mut idle: u32 = 0;
         loop {
             let mut line = String::new();
             match reader.read_line(&mut line) {
-                Ok(0) => thread::sleep(Duration::from_millis(400)),
+                Ok(0) => {
+                    thread::sleep(Duration::from_millis(300));
+                    if FOLLOW_REFS.load(Ordering::SeqCst) == 0 {
+                        idle += 1;
+                        if idle >= 10 {
+                            return; // 无人监听，退出，停止向隐藏窗口推事件
+                        }
+                    } else {
+                        idle = 0;
+                    }
+                }
                 Ok(_) => {
+                    idle = 0;
                     let trimmed = line.trim_end_matches('\n');
                     if app.emit("log-line", trimmed).is_err() {
                         break; // 窗口关闭
@@ -266,6 +282,15 @@ fn log_follow(app: AppHandle) {
             }
         }
     });
+}
+
+/// 前端离开日志页时配对调用：引用计数减一。
+#[tauri::command]
+fn log_unfollow() {
+    use std::sync::atomic::Ordering;
+    FOLLOW_REFS.fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| {
+        Some(n.saturating_sub(1))
+    }).ok();
 }
 
 #[tauri::command(rename_all = "camelCase")]
@@ -307,21 +332,134 @@ fn sherpa_dir(custom_dir: Option<String>) -> String {
     })
 }
 
+/// 探测当前系统/环境代理，供 curl 使用。
+///
+/// GUI 应用不继承终端的 http_proxy 环境变量，国内网络下不读代理会导致
+/// 访问 GitHub 直接卡死。优先级：环境变量 > macOS 系统代理 > Windows 系统代理。
+/// 目标是 HTTPS URL，因此优先返回 https/HTTPS 类型的代理。
+fn system_proxy() -> Option<String> {
+    // 1) 环境变量（终端 `tauri dev` 场景）
+    for k in ["HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy"] {
+        if let Ok(v) = std::env::var(k) {
+            let v = v.trim();
+            if !v.is_empty() {
+                return Some(v.to_string());
+            }
+        }
+    }
+
+    // 2) macOS / Linux：scutil --proxy（macOS 专属，Linux 无此命令则跳过）
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(out) = std::process::Command::new("scutil").arg("--proxy").output() {
+            if out.status.success() {
+                let text = String::from_utf8_lossy(&out.stdout);
+                let get = |key: &str| -> Option<String> {
+                    text.lines()
+                        .map(str::trim)
+                        .find_map(|l| l.strip_prefix(&format!("{key} :")))
+                        .map(|v| v.trim().to_string())
+                };
+                // 优先 HTTPS 代理，其次 HTTP 代理（Clash 等混合端口两者通用）
+                for (enable, host, port) in [
+                    ("HTTPSEnable", "HTTPSProxy", "HTTPSPort"),
+                    ("HTTPEnable", "HTTPProxy", "HTTPPort"),
+                ] {
+                    if get(enable).as_deref() == Some("1") {
+                        if let (Some(h), Some(p)) = (get(host), get(port)) {
+                            if !h.is_empty() && h != "*" {
+                                return Some(format!("http://{h}:{p}"));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 3) Windows：读取 IE/系统代理注册表
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(out) = std::process::Command::new("reg")
+            .args([
+                "query",
+                r"HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings",
+            ])
+            .output()
+        {
+            if out.status.success() {
+                let text = String::from_utf8_lossy(&out.stdout);
+                let get = |name: &str| -> Option<String> {
+                    text.lines()
+                        .map(str::trim)
+                        .filter(|l| l.starts_with(name))
+                        .find_map(|l| {
+                            // 形如 “ProxyEnable    REG_DWORD    0x1”，取类型之后的值
+                            let mut it = l.split_whitespace();
+                            if it.next()? != name {
+                                return None;
+                            }
+                            let _ty = it.next()?; // REG_SZ / REG_DWORD
+                            it.next().map(|s| s.trim().to_string())
+                        })
+                };
+                if get("ProxyEnable").as_deref() == Some("0x1") {
+                    if let Some(server) = get("ProxyServer") {
+                        // 可能是 "host:port" 或 "http=h:p;https=h:p"，取 https= 或第一段
+                        let picked = server
+                            .split(';')
+                            .find_map(|s| s.trim().strip_prefix("https="))
+                            .or_else(|| server.split(';').next())
+                            .unwrap_or("")
+                            .trim();
+                        if !picked.is_empty() {
+                            let url = if picked.starts_with("http") {
+                                picked.to_string()
+                            } else {
+                                format!("http://{picked}")
+                            };
+                            return Some(url);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
 /// 一键下载 sherpa 模型（GitHub Releases tar.bz2，curl + tar 均为系统自带）
+///
+/// 下载策略（应对 GitHub 资源链接不稳 / 中途断流导致的 truncated bzip2）：
+/// - curl `-C -` 断点续传 + 应用侧重试，断流后已下载部分不浪费（不依赖
+///   curl 版本的 --retry-all-errors）
+/// - --speed-time/--speed-limit 识别“假连接”（长时间无字节）并主动中断续传
+/// - 下载完成后比对 Content-Length，大小不符判定失败并保留残包供下次续传
+/// - 解压前删除旧的残次模型目录；解压并校验关键文件成功后才删除压缩包
 #[tauri::command]
 async fn sherpa_model_download(app: tauri::AppHandle) -> Result<String, String> {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
     use tauri::Emitter;
     const URL: &str = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-x-asr-480ms-streaming-zipformer-transducer-zh-en-punct-int8-2026-06-05.tar.bz2";
     const DIR_NAME: &str = "sherpa-onnx-x-asr-480ms-streaming-zipformer-transducer-zh-en-punct-int8-2026-06-05";
+    const MAX_ATTEMPTS: u32 = 6;
 
     let home = dirs::home_dir().ok_or("找不到用户主目录")?;
     let models = home.join(".config/mojo/models");
     std::fs::create_dir_all(&models).map_err(|e| e.to_string())?;
     let tar_path = models.join("sherpa-model.tar.bz2");
 
-    // 总大小（跟随跳转，从响应头取 Content-Length）
-    let total: u64 = std::process::Command::new("curl")
-        .args(["-sIL", URL])
+    // 总大小（跟随跳转，取最后一个 Content-Length，即实际资源响应）
+    let proxy = system_proxy();
+    let mut head_cmd = std::process::Command::new("curl");
+    head_cmd.args(["-sIL", "--connect-timeout", "20"]);
+    if let Some(p) = &proxy {
+        head_cmd.args(["--proxy", p]);
+    }
+    let total: u64 = head_cmd
+        .arg(URL)
         .output()
         .ok()
         .and_then(|o| String::from_utf8(o.stdout).ok())
@@ -333,44 +471,121 @@ async fn sherpa_model_download(app: tauri::AppHandle) -> Result<String, String> 
         })
         .unwrap_or(0);
 
-    // 后台下载，轮询文件大小发进度事件
-    let tar_str = tar_path.to_string_lossy().into_owned();
-    let mut child = std::process::Command::new("curl")
-        .args(["-sL", "--fail", "-o", &tar_str, URL])
-        .spawn()
-        .map_err(|e| format!("启动 curl 失败: {e}"))?;
+    // 进度轮询线程，由 stop 标志控制结束（覆盖下载全程，含重试等待）
+    let stop = Arc::new(AtomicBool::new(false));
+    let stop2 = stop.clone();
     let app2 = app.clone();
     let tar2 = tar_path.clone();
     let progress = std::thread::spawn(move || {
-        loop {
+        while !stop2.load(Ordering::Relaxed) {
             let size = std::fs::metadata(&tar2).map(|m| m.len()).unwrap_or(0);
             let _ = app2.emit("sherpa-download-progress", serde_json::json!({
                 "downloaded": size, "total": total
             }));
             std::thread::sleep(std::time::Duration::from_millis(300));
-            if size >= total && total > 0 { break; }
         }
     });
-    let status = tokio::task::spawn_blocking(move || child.wait())
-        .await
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())?;
+
+    // 断点续传 + 重试（同步阻塞，放到 blocking 线程里）
+    let app3 = app.clone();
+    let tar3 = tar_path.clone();
+    let download = tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let tar_str = tar3.to_string_lossy();
+        for attempt in 1..=MAX_ATTEMPTS {
+            let have = std::fs::metadata(&tar3).map(|m| m.len()).unwrap_or(0);
+            if total > 0 && have == total {
+                return Ok(()); // 已完整
+            }
+            if total > 0 && have > total {
+                // 服务端无视 Range 返回整包导致续传追加（文件损坏），删掉重下
+                let _ = std::fs::remove_file(&tar3);
+            }
+            let mut cmd = std::process::Command::new("curl");
+            cmd.args([
+                "-sL",
+                "--fail",
+                "-C", "-", // 断点续传
+                "--connect-timeout", "20",
+                "--speed-time", "30", // 30s 内平均速度低于 1KB/s 判定为卡死
+                "--speed-limit", "1024",
+            ]);
+            if let Some(p) = &proxy {
+                cmd.args(["--proxy", p]);
+            }
+            cmd.args(["-o", &tar_str, URL]);
+            let status = cmd.status();
+            let have = std::fs::metadata(&tar3).map(|m| m.len()).unwrap_or(0);
+            let done = total == 0 || have >= total;
+            match status {
+                Ok(s) if s.success() && done => return Ok(()),
+                Ok(s) => {
+                    let code = s.code().unwrap_or(-1);
+                    let _ = app3.emit(
+                        "sherpa-download-progress",
+                        serde_json::json!({ "error": format!("第 {attempt}/{MAX_ATTEMPTS} 次下载中断（curl {code}），已下载 {have} 字节，断点续传中…") }),
+                    );
+                }
+                Err(e) => {
+                    let _ = app3.emit(
+                        "sherpa-download-progress",
+                        serde_json::json!({ "error": format!("第 {attempt}/{MAX_ATTEMPTS} 次启动 curl 失败：{e}，重试中…") }),
+                    );
+                }
+            }
+            if attempt < MAX_ATTEMPTS {
+                std::thread::sleep(std::time::Duration::from_secs(2));
+            }
+        }
+        let have = std::fs::metadata(&tar3).map(|m| m.len()).unwrap_or(0);
+        if have == 0 {
+            return Err("下载失败：未收到任何数据（网络错误或链接失效）".into());
+        }
+        Err(format!(
+            "下载不完整：{have} / {total} 字节，网络不稳定。请重新点击下载，已保留断点会继续。"
+        ))
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    stop.store(true, Ordering::Relaxed);
     let _ = progress.join();
-    if !status.success() {
-        let _ = std::fs::remove_file(&tar_path);
-        return Err("下载失败（网络错误或链接失效）".into());
+    download?;
+
+    // 解压前清掉上次失败残留的模型目录，避免截断文件与新文件混杂
+    let model_dir = models.join(DIR_NAME);
+    if model_dir.exists() {
+        std::fs::remove_dir_all(&model_dir).map_err(|e| format!("清理旧模型目录失败: {e}"))?;
     }
 
-    // 解压（bsdtar 自动识别 bz2）
+    // 解压（bsdtar 自动识别 bz2）；失败时保留压缩包，下次可直接续传
+    let tar_str = tar_path.to_string_lossy();
+    let models_str = models.to_string_lossy();
     let out = std::process::Command::new("tar")
-        .args(["xjf", &tar_str, "-C", &models.to_string_lossy()])
+        .args(["xjf", &tar_str, "-C", &models_str])
         .output()
         .map_err(|e| format!("解压失败: {e}"))?;
-    let _ = std::fs::remove_file(&tar_path);
     if !out.status.success() {
-        return Err(format!("解压失败: {}", String::from_utf8_lossy(&out.stderr)));
+        return Err(format!(
+            "解压失败：{}（安装包已保留，重新点击下载可续传）",
+            String::from_utf8_lossy(&out.stderr)
+        ));
     }
-    Ok(models.join(DIR_NAME).to_string_lossy().into_owned())
+
+    // 校验关键文件，防止解出半截目录
+    let encoder_ok = [
+        "encoder.int8.onnx",
+        "encoder-epoch-99-avg-1.int8.onnx",
+        "encoder.onnx",
+    ]
+    .iter()
+    .any(|f| model_dir.join(f).exists());
+    if !model_dir.join("tokens.txt").exists() || !encoder_ok {
+        return Err("解压完成但缺少关键模型文件（tokens.txt / encoder），请重新下载".into());
+    }
+
+    // 下载 + 解压全部成功后才删除压缩包
+    let _ = std::fs::remove_file(&tar_path);
+    Ok(model_dir.to_string_lossy().into_owned())
 }
 
 // MARK: - 托盘
@@ -495,6 +710,8 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         // 开机自启：macOS 走 LaunchAgent（~/Library/LaunchAgents/com.zyk.mojo.plist）
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -543,6 +760,7 @@ pub fn run() {
             engine_runtime_status,
             log_tail,
             log_follow,
+            log_unfollow,
             volc_test,
             sherpa_model_status,
             sherpa_model_download,

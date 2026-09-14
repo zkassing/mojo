@@ -45,6 +45,16 @@ fn write_line(prefix: &str, msg: &str) {
                 if let Some(dir) = p.parent() {
                     let _ = std::fs::create_dir_all(dir);
                 }
+                // 启动轮转：当前日志超过 1MiB 则滚动一份 .old（只保留一份），
+                // 防止常驻数月后日志只增不减占满磁盘。
+                const MAX_LOG_BYTES: u64 = 1024 * 1024;
+                if let Ok(meta) = std::fs::metadata(&p) {
+                    if meta.len() > MAX_LOG_BYTES {
+                        let old = p.with_extension("log.old");
+                        let _ = std::fs::remove_file(&old);
+                        let _ = std::fs::rename(&p, &old);
+                    }
+                }
                 *g = std::fs::OpenOptions::new()
                     .create(true)
                     .append(true)

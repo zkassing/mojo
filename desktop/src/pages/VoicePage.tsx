@@ -42,6 +42,10 @@ export default function VoicePage() {
   useEffect(() => {
     api.sherpaModelStatus().then(setSherpa).catch(() => setSherpa(null));
     const un = api.onSherpaProgress((p) => {
+      if (p.error) {
+        toast(p.error, { duration: 4000 });
+        return;
+      }
       if (p.total > 0) setProgress(Math.min(99, Math.round((p.downloaded / p.total) * 100)));
     });
     return () => {

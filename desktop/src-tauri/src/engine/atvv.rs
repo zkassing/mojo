@@ -184,6 +184,13 @@ async fn atvv_main(
 
                 loop {
                     tokio::select! {
+                        // 推流看门狗：超过 30s 未收到 AUDIO_STOP（遥控器掉线/丢包）
+                        // 自动收尾，避免 streaming 不复位、PCM 持续灌入会话。
+                        // sleep 在每轮 select 重新计时，正常推流期间每 <30s 必然有通知刷新。
+                        _ = tokio::time::sleep(Duration::from_secs(30)), if session.is_streaming() => {
+                            Log::warn("ATVV 30 秒未收到 AUDIO_STOP，自动结束本次录音");
+                            session.flush();
+                        }
                         n = notifs.next() => {
                             let Some(n) = n else { break }; // 通知流结束 = 断开
                             session.on_notification(n.uuid, &n.value);

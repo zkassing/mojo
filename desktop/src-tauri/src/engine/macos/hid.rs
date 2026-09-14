@@ -74,7 +74,10 @@ extern "C" fn watcher_timer_cb(_timer: cf_rl_sys::CFRunLoopTimerRef, info: *mut 
         WatcherTimer::Refresh(w) => {
             let w = *w;
             unsafe {
-                (*w).pending_refresh.borrow_mut().take();
+                // take 出 context 并回收 Box（timer 已在 make_timer 里平衡过引用）
+                if let Some((_timer, ctx)) = (*w).pending_refresh.borrow_mut().take() {
+                    drop(Box::from_raw(ctx));
+                }
                 (*w).refresh();
             }
         }
@@ -245,7 +248,12 @@ impl Drop for DeviceWatcher {
             }
         }
         if !self.manager.is_null() {
-            unsafe { ffi::IOHIDManagerClose(self.manager, 0) };
+            unsafe {
+                ffi::IOHIDManagerClose(self.manager, 0);
+                // Create Rule：IOHIDManagerCreate 返回 +1，Close 不释放对象
+                ffi::CFRelease(self.manager as _);
+                self.manager = std::ptr::null_mut();
+            }
         }
     }
 }
@@ -346,7 +354,11 @@ extern "C" fn value_cb(
 impl Drop for HIDWatcher {
     fn drop(&mut self) {
         if !self.manager.is_null() {
-            unsafe { ffi::IOHIDManagerClose(self.manager, 0) };
+            unsafe {
+                ffi::IOHIDManagerClose(self.manager, 0);
+                ffi::CFRelease(self.manager as _);
+                self.manager = std::ptr::null_mut();
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ name: 打包
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 jobs:
@@ -85,6 +86,9 @@ jobs:
 
       - name: 构建 Tauri 应用
         working-directory: desktop
+        env:
+          # 更新包签名（仅 tag 发布时该 secret 有值；平时构建无签名也能出安装包）
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: pnpm tauri build
 
       - name: 上传 macOS 产物
@@ -94,6 +98,8 @@ jobs:
           name: mojo-macos-arm64
           path: |
             desktop/src-tauri/target/release/bundle/dmg/*.dmg
+            desktop/src-tauri/target/release/bundle/macos/*.app.tar.gz
+            desktop/src-tauri/target/release/bundle/macos/*.app.tar.gz.sig
           if-no-files-found: warn
           retention-days: 14
 
@@ -105,6 +111,8 @@ jobs:
           path: |
             desktop/src-tauri/target/release/bundle/msi/*.msi
             desktop/src-tauri/target/release/bundle/nsis/*.exe
+            desktop/src-tauri/target/release/bundle/nsis/*.nsis.zip
+            desktop/src-tauri/target/release/bundle/nsis/*.nsis.zip.sig
           if-no-files-found: warn
           retention-days: 14
 
@@ -115,7 +123,86 @@ jobs:
           name: mojo-linux-x64
           path: |
             desktop/src-tauri/target/release/bundle/appimage/*.AppImage
+            desktop/src-tauri/target/release/bundle/appimage/*.AppImage.tar.gz
+            desktop/src-tauri/target/release/bundle/appimage/*.AppImage.tar.gz.sig
             desktop/src-tauri/target/release/bundle/deb/*.deb
             desktop/src-tauri/target/release/bundle/rpm/*.rpm
           if-no-files-found: warn
           retention-days: 14
+
+  # ============ 发布到 GitHub Releases（仅打 v* 标签时）============
+  release:
+    name: 发布 Release
+    needs: panel
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 下载全部平台产物
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: 列出待发布文件
+        run: find artifacts -type f | sort
+
+      - name: 生成更新清单 latest.json
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          # 更新器包按固定文件名扁平化（方便清单引用，且覆盖更新不会累积旧资产名）
+          find artifacts -name '*.app.tar.gz'       -exec cp {} release/mojo-macos-arm64.app.tar.gz \;
+          find artifacts -name '*.app.tar.gz.sig'   -exec cp {} release/mojo-macos-arm64.app.tar.gz.sig \;
+          find artifacts -name '*.nsis.zip' ! -name '*.sig' -exec cp {} release/mojo-windows-x64-setup.nsis.zip \;
+          find artifacts -name '*.nsis.zip.sig'    -exec cp {} release/mojo-windows-x64-setup.nsis.zip.sig \;
+          find artifacts -name '*.AppImage.tar.gz' ! -name '*.sig' -exec cp {} release/mojo-linux-x86_64.AppImage.tar.gz \;
+          find artifacts -name '*.AppImage.tar.gz.sig' -exec cp {} release/mojo-linux-x86_64.AppImage.tar.gz.sig \;
+          # 普通安装包（供手动下载）
+          find artifacts -name '*.dmg' -exec cp {} release/ \;
+          find artifacts -name '*.exe' -exec cp {} release/ \;
+          find artifacts -name '*.AppImage' -exec cp {} release/ \;
+          ls -la release
+
+          VERSION="${TAG#v}"
+          BASE="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
+          read_sig() { tr -d '\n\r' < "$1"; }
+          python3 - "$VERSION" "$BASE" release/latest.json" <<'PY'
+          import json, pathlib, sys
+          version, base, out = sys.argv[1], sys.argv[2], sys.argv[3]
+          def sig(name):
+              p = pathlib.Path("release") / (name + ".sig")
+              return p.read_text().strip()
+          platforms = {
+              "darwin-aarch64": {
+                  "signature": sig("mojo-macos-arm64.app.tar.gz"),
+                  "url": f"{base}/mojo-macos-arm64.app.tar.gz",
+              },
+              "windows-x86_64": {
+                  "signature": sig("mojo-windows-x64-setup.nsis.zip"),
+                  "url": f"{base}/mojo-windows-x64-setup.nsis.zip",
+              },
+              "linux-x86_64": {
+                  "signature": sig("mojo-linux-x86_64.AppImage.tar.gz"),
+                  "url": f"{base}/mojo-linux-x86_64.AppImage.tar.gz",
+              },
+          }
+          pathlib.Path(out).write_text(json.dumps({
+              "version": version,
+              "notes": "详见本 Release 的更新说明",
+              "platforms": platforms,
+          }, ensure_ascii=False, indent=2) + "\n")
+          print(pathlib.Path(out).read_text())
+          PY
+
+      - name: 创建 / 更新 GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+          files: |
+            release/latest.json
+            release/*

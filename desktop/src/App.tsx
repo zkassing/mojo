@@ -12,6 +12,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { ConfigProvider } from "./lib/config-context";
 import { api } from "./lib/api";
+import { checkForUpdate } from "./lib/updater";
 import MappingPage from "./pages/MappingPage";
 import VoicePage from "./pages/VoicePage";
 import ServicePage from "./pages/ServicePage";
@@ -42,7 +43,14 @@ export default function App() {
       document.documentElement.classList.toggle("dark", mq.matches);
     apply();
     mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
+    // 启动 5 秒后静默检查更新（无更新/网络失败均不打扰）
+    const updateTimer = setTimeout(() => {
+      void checkForUpdate(true);
+    }, 5000);
+    return () => {
+      mq.removeEventListener("change", apply);
+      clearTimeout(updateTimer);
+    };
   }, []);
 
   return (

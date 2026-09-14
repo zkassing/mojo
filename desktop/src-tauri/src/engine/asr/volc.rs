@@ -86,10 +86,20 @@ async fn run(
             }
         }
     }
-    let (mut ws, _) = match connect_async_tls_with_config(req, None, false, None).await {
-        Ok(x) => x,
-        Err(e) => {
+    let (mut ws, _) = match tokio::time::timeout(
+        std::time::Duration::from_secs(20),
+        connect_async_tls_with_config(req, None, false, None),
+    )
+    .await
+    {
+        Ok(Ok(x)) => x,
+        Ok(Err(e)) => {
             Log::warn(&format!("火山 ASR 连接失败（检查凭证/网络）: {e}"));
+            let _ = out.send(AsrOut::Final(String::new()));
+            return;
+        }
+        Err(_) => {
+            Log::warn("火山 ASR 连接超时（20s 无响应）");
             let _ = out.send(AsrOut::Final(String::new()));
             return;
         }
@@ -128,6 +138,20 @@ async fn run(
 
     loop {
         tokio::select! {
+            // 看门狗：录音阶段 60s 无任何音频/返回帧 → 连接假死，放弃会话，
+            // 避免 unbounded 通道里 PCM 无限堆积（每轮 select 重新计时，
+            // 有消息就重置，天然是空闲超时）。
+            _ = tokio::time::sleep(std::time::Duration::from_secs(60)),
+                if !finished && !cancelled => {
+                Log::warn("火山 ASR 60 秒无活动，判定连接异常，结束本次会话");
+                emit_final_once(out, &last_text, &mut emitted);
+                return;
+            }
+            // 已发最后一包后服务端 10s 不回收尾帧 → 用已收到的结果收尾
+            _ = tokio::time::sleep(std::time::Duration::from_secs(10)), if finished => {
+                emit_final_once(out, &last_text, &mut emitted);
+                return;
+            }
             msg = input.recv() => {
                 let Some(msg) = msg else { break }; // 通道关闭
                 match msg {
