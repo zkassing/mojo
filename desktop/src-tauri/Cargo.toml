@@ -1,6 +1,6 @@
 [package]
 name = "mojo-desktop"
-version = "0.1.1"
+version = "0.1.2"
 description = "小米蓝牙语音遥控器跨平台控制面板"
 authors = ["zyk"]
 edition = "2021"
