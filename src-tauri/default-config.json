@@ -66,6 +66,327 @@
   },
   "profiles": [
     {
+      "name": "Codex",
+      "match": {
+        "appNames": ["codex"]
+      },
+      "bindings": {
+        "ok": {
+          "tap": "return",
+          "long": "shift+return"
+        },
+        "up": {
+          "tap": "up",
+          "repeat": true
+        },
+        "down": {
+          "tap": "down",
+          "repeat": true
+        },
+        "left": {
+          "tap": "left"
+        },
+        "right": {
+          "tap": "right"
+        },
+        "menu": {
+          "tap": "escape"
+        },
+        "back": {
+          "tap": "escape"
+        },
+        "home": {
+          "tap": "none"
+        },
+        "voice": {
+          "tap": "dictate"
+        },
+        "power": {
+          "tap": "none"
+        },
+        "volup": {
+          "tap": {
+            "type": "passthrough"
+          }
+        },
+        "voldown": {
+          "tap": {
+            "type": "passthrough"
+          }
+        },
+        "tv": {
+          "tap": "none"
+        }
+      }
+    },
+    {
+      "name": "WorkBuddy",
+      "match": {
+        "appNames": ["workbuddy"]
+      },
+      "bindings": {
+        "ok": {
+          "tap": "return",
+          "long": "shift+return"
+        },
+        "up": {
+          "tap": "up",
+          "repeat": true
+        },
+        "down": {
+          "tap": "down",
+          "repeat": true
+        },
+        "left": {
+          "tap": "left"
+        },
+        "right": {
+          "tap": "right"
+        },
+        "menu": {
+          "tap": "escape"
+        },
+        "back": {
+          "tap": "escape"
+        },
+        "home": {
+          "tap": "none"
+        },
+        "voice": {
+          "tap": "dictate"
+        },
+        "power": {
+          "tap": "none"
+        },
+        "volup": {
+          "tap": {
+            "type": "passthrough"
+          }
+        },
+        "voldown": {
+          "tap": {
+            "type": "passthrough"
+          }
+        },
+        "tv": {
+          "tap": "none"
+        }
+      }
+    },
+    {
+      "name": "ZCode",
+      "match": {
+        "appNames": ["zcode"]
+      },
+      "bindings": {
+        "ok": {
+          "tap": "return",
+          "long": "shift+return"
+        },
+        "up": {
+          "tap": "up",
+          "repeat": true
+        },
+        "down": {
+          "tap": "down",
+          "repeat": true
+        },
+        "left": {
+          "tap": "left"
+        },
+        "right": {
+          "tap": "right"
+        },
+        "menu": {
+          "tap": "escape"
+        },
+        "back": {
+          "tap": "escape"
+        },
+        "home": {
+          "tap": "none"
+        },
+        "voice": {
+          "tap": "dictate"
+        },
+        "power": {
+          "tap": "none"
+        },
+        "volup": {
+          "tap": {
+            "type": "passthrough"
+          }
+        },
+        "voldown": {
+          "tap": {
+            "type": "passthrough"
+          }
+        },
+        "tv": {
+          "tap": "none"
+        }
+      }
+    },
+    {
+      "name": "macOS 终端",
+      "match": {
+        "bundleIds": ["com.apple.Terminal", "com.googlecode.iterm2"]
+      },
+      "bindings": {
+        "ok": {
+          "tap": "return"
+        },
+        "up": {
+          "tap": "up",
+          "repeat": true
+        },
+        "down": {
+          "tap": "down",
+          "repeat": true
+        },
+        "left": {
+          "tap": "left"
+        },
+        "right": {
+          "tap": "right"
+        },
+        "menu": {
+          "tap": "escape"
+        },
+        "back": {
+          "tap": "ctrl+c"
+        },
+        "home": {
+          "tap": "none"
+        },
+        "voice": {
+          "tap": "dictate"
+        },
+        "power": {
+          "tap": "none"
+        },
+        "volup": {
+          "tap": {
+            "type": "passthrough"
+          }
+        },
+        "voldown": {
+          "tap": {
+            "type": "passthrough"
+          }
+        },
+        "tv": {
+          "tap": "none"
+        }
+      }
+    },
+    {
+      "name": "Windows 终端",
+      "match": {
+        "appNames": ["windowsterminal", "openconsole", "cmd", "powershell", "pwsh"]
+      },
+      "bindings": {
+        "ok": {
+          "tap": "return"
+        },
+        "up": {
+          "tap": "up",
+          "repeat": true
+        },
+        "down": {
+          "tap": "down",
+          "repeat": true
+        },
+        "left": {
+          "tap": "left"
+        },
+        "right": {
+          "tap": "right"
+        },
+        "menu": {
+          "tap": "escape"
+        },
+        "back": {
+          "tap": "ctrl+c"
+        },
+        "home": {
+          "tap": "none"
+        },
+        "voice": {
+          "tap": "dictate"
+        },
+        "power": {
+          "tap": "none"
+        },
+        "volup": {
+          "tap": {
+            "type": "passthrough"
+          }
+        },
+        "voldown": {
+          "tap": {
+            "type": "passthrough"
+          }
+        },
+        "tv": {
+          "tap": "none"
+        }
+      }
+    },
+    {
+      "name": "Linux 终端",
+      "match": {
+        "appNames": ["gnome-terminal-server", "gnome-terminal", "kgx", "konsole", "xterm", "alacritty"]
+      },
+      "bindings": {
+        "ok": {
+          "tap": "return"
+        },
+        "up": {
+          "tap": "up",
+          "repeat": true
+        },
+        "down": {
+          "tap": "down",
+          "repeat": true
+        },
+        "left": {
+          "tap": "left"
+        },
+        "right": {
+          "tap": "right"
+        },
+        "menu": {
+          "tap": "escape"
+        },
+        "back": {
+          "tap": "ctrl+c"
+        },
+        "home": {
+          "tap": "none"
+        },
+        "voice": {
+          "tap": "dictate"
+        },
+        "power": {
+          "tap": "none"
+        },
+        "volup": {
+          "tap": {
+            "type": "passthrough"
+          }
+        },
+        "voldown": {
+          "tap": {
+            "type": "passthrough"
+          }
+        },
+        "tv": {
+          "tap": "none"
+        }
+      }
+    },
+    {
       "name": "默认配置",
       "bindings": {
         "ok": {
