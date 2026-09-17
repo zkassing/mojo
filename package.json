@@ -1,6 +1,6 @@
 {
   "name": "mojo-desktop",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "小米蓝牙语音遥控器 · 跨平台可视化配置面板",
   "type": "module",
   "private": true,
