@@ -114,7 +114,7 @@ export default function VoicePage() {
   return (
     <PageShell
       title="语音识别"
-      desc="配置火山引擎流式大模型 ASR 凭证，按住遥控器语音键触发识别。"
+      desc="选择引擎并配置凭证，按住语音键说话。"
     >
       <div className="max-w-2xl space-y-5">
         <Card>
@@ -144,13 +144,13 @@ export default function VoicePage() {
                 checked={v.liveTyping}
                 onChange={(x) => setV({ liveTyping: x })}
                 title="边说边出字"
-                desc="流式中间结果实时写入输入框"
+                desc="中间结果实时上屏"
               />
               <ToggleRow
                 checked={v.fixTerms}
                 onChange={(x) => setV({ fixTerms: x })}
-                title="本地纠正编程术语谐音"
-                desc="main→闷、diff→地府 等自动纠正"
+                title="纠正编程术语谐音"
+                desc="如 main→闷、diff→地府"
               />
               <ToggleRow
                 checked={v.stripPunctuation}
@@ -230,8 +230,7 @@ export default function VoicePage() {
               火山引擎凭证
             </CardTitle>
             <CardDescription>
-              在「语音技术控制台」获取 Access Token（方舟 ARK 的 API Key
-              不能用于此接口）。
+              在语音技术控制台获取；方舟 ARK 的 API Key 不适用。
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

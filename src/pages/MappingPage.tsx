@@ -97,7 +97,7 @@ export default function MappingPage() {
   return (
     <PageShell
       title="按键映射"
-      desc="点击遥控器上的按键，分别配置单击、长按、双击的动作。"
+      desc="点选按键，配置单击 / 长按 / 双击。"
     >
       <div className="mb-5 flex flex-wrap items-center gap-2">
         {config.profiles.map((p) => (

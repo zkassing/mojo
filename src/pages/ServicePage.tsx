@@ -97,7 +97,7 @@ export default function ServicePage() {
   return (
     <PageShell
       title="服务与状态"
-      desc="内置引擎负责蓝牙连接、按键拦截和语音识别，常驻托盘运行。"
+      desc="引擎、权限与更新。"
     >
       <div className="max-w-2xl space-y-5">
         {(noInput || noAx) && (
@@ -106,22 +106,19 @@ export default function ServicePage() {
               {noAx && (
                 <PermissionWarn
                   title="缺少「辅助功能」权限"
-                  desc="无法拦截和注入按键，方向键/确定键等映射不会生效。"
+                  desc="按键映射不会生效。"
                   onClick={() => api.openPermissionSettings("accessibility")}
                 />
               )}
               {noInput && (
                 <PermissionWarn
                   title="缺少「输入监控」权限"
-                  desc="返回键（back，usage 0xF1）只能通过 HID 直读通道接收，未授权时该键完全无反应。"
+                  desc="返回键（back）需要此权限，否则无反应。"
                   onClick={() => api.openPermissionSettings("input")}
                 />
               )}
               <p className="text-[12px] leading-relaxed text-muted-foreground">
-                授权后请在本页点「停止引擎」再「启动引擎」（或退出重开）。
-                若列表里已有 Mojo 且开关已打开却仍提示：说明旧授权条目已失效
-                （未签名的 App 每次更新都会这样），需删掉旧条目重新授权 ——
-                可直接点下方按钮一键重置。
+                授权后请重启引擎生效。开关已打开却仍提示：授权条目已失效，需重置。
               </p>
               <Button
                 size="sm"
@@ -151,8 +148,7 @@ export default function ServicePage() {
             </CardHeader>
             <CardContent>
               <p className="text-[13px] leading-relaxed text-muted-foreground">
-                当前平台的原生按键/蓝牙内核正在移植中（计划：btleplug +
-                平台钩子）。配置、方案、火山连接测试可正常使用，保存的配置将在引擎就绪后生效。
+                该平台引擎尚未就绪，可正常编辑配置，引擎支持后生效。
               </p>
             </CardContent>
           </Card>
@@ -201,8 +197,7 @@ export default function ServicePage() {
               </Button>
             </div>
             <p className="text-[12px] leading-relaxed text-muted-foreground">
-              按键映射 + 语音转文字均由内置引擎处理。首次启动需在
-              「辅助功能」「输入监控」「蓝牙」中授权本应用。
+              首次使用需在「辅助功能 / 输入监控 / 蓝牙」中授权。
             </p>
           </CardContent>
         </Card>
@@ -231,7 +226,7 @@ export default function ServicePage() {
               </Button>
             </div>
             <p className="text-[12px] leading-relaxed text-muted-foreground">
-              启动时会自动检查；新版本下载完成后需重启应用生效。
+              启动时自动检查；更新需重启生效。
             </p>
           </CardContent>
         </Card>

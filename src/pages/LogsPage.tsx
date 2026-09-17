@@ -84,7 +84,7 @@ export default function LogsPage() {
   return (
     <PageShell
       title="实时日志"
-      desc="引擎输出，排查按键、蓝牙、识别问题用。"
+      desc="排查按键、蓝牙、识别问题。"
     >
       <div className="mb-3 flex items-center justify-between">
         <label className="flex items-center gap-2 text-[13px] text-muted-foreground">
