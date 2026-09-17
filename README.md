@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="desktop/app-icon.png" width="128" alt="Mojo 图标" />
+  <img src="app-icon.png" width="128" alt="Mojo 图标" />
   <h1>Mojo</h1>
   <p><b>小米蓝牙语音遥控器 → 按键映射 + 语音转文字</b></p>
   <p>macOS 菜单栏常驻的 Tauri 面板应用，内置完整 Rust 引擎，无独立守护进程。</p>
@@ -44,7 +44,6 @@
 ### 从源码构建
 
 ```bash
-cd desktop
 pnpm install
 pnpm tauri build        # 产出 src-tauri/target/release/bundle/macos/Mojo.app
 ```
@@ -69,7 +68,6 @@ UI、配置、方案逻辑、火山 ASR 协议全部跨平台；只有**按键�
 ## 开发
 
 ```bash
-cd desktop
 pnpm tauri dev               # 开发模式（前端 HMR + Rust 热编译）
 cd src-tauri && cargo test   # 引擎纯逻辑单测
 ```
@@ -80,7 +78,7 @@ cd src-tauri && cargo test   # 引擎纯逻辑单测
 
 ## 发版
 
-同步 `desktop/package.json` 与 `desktop/src-tauri/tauri.conf.json` 的版本号后打 tag 推送，
+同步 `package.json` 与 `src-tauri/tauri.conf.json` 的版本号后打 tag 推送，
 GitHub Actions 自动完成三平台构建、更新包签名与 Release 发布：
 
 ```bash
@@ -92,11 +90,11 @@ git tag v0.2.0 && git push origin v0.2.0
 ## 仓库结构
 
 ```
-desktop/                Tauri 面板 + Rust 引擎（唯一产物）
-  src/                      React + TypeScript 前端（Tailwind / shadcn）
-  src-tauri/src/engine/     引擎核心：状态机 / 平台驱动 / ATVV 蓝牙协议 / 语音链路
-    engine/macos|windows|linux/  平台内核（按键拦截注入、BLE、前台 App 感知）
-    engine/asr/             sherpa-onnx（本地）与火山（云端）识别
+src/                    React + TypeScript 前端（Tailwind / shadcn）
+src-tauri/src/engine/   引擎核心：状态机 / 平台驱动 / ATVV 蓝牙协议 / 语音链路
+  engine/macos|windows|linux/  平台内核（按键拦截注入、BLE、前台 App 感知）
+  engine/asr/             sherpa-onnx（本地）与火山（云端）识别
+scripts/                发版与构建脚本
 third_party/            sherpa-onnx 预编译库（体积大不入 git，CI 自动下载）
 docs/                   设计与迁移文档
 ```

@@ -8,8 +8,8 @@
 ### 步骤
 
 1. **同步版本号**（两处必须一致，tag 与此版本对应）：
-   - `desktop/src-tauri/tauri.conf.json` 的 `version`
-   - `desktop/package.json` 的 `version`
+   - `src-tauri/tauri.conf.json` 的 `version`
+   - `package.json` 的 `version`
 2. 提交并推送到 `main`。
 3. 打 tag 并推送（版本号去掉前导 `v` 后须与上面一致）：
 
@@ -42,4 +42,4 @@
    检测不到更新属正常；从该版本起，之后的新版本才能自动更新。
 2. **macOS 产物未做代码签名/公证**：自动更新替换 `.app` 后可能被 Gatekeeper
    拦截，需右键打开或 `xattr -dr com.apple.quarantine`。要做到无感需接入
-   Apple Developer 签名（参考 `desktop/scripts/build-signed.sh`）。
+   Apple Developer 签名（参考 `scripts/build-signed.sh`）。

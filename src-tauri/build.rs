@@ -54,7 +54,7 @@ fn sherpa_setup() {
     };
 
     let manifest = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let root = manifest.join("../.."); // 仓库根
+    let root = manifest.join(".."); // 仓库根（src-tauri 的上一级）
     let sherpa = root.join(sub);
     let lib_dir = sherpa.join("lib");
     let bridge = manifest.join("native/sherpa-bridge");

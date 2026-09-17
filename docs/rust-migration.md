@@ -26,7 +26,7 @@ sherpa 线程池   本地识别推理（全局一个引擎实例，会话间 res
 
 ## 模块映射（Swift → Rust）
 
-| Swift | Rust（`desktop/src-tauri/src/`） | 状态 |
+| Swift | Rust（`src-tauri/src/`） | 状态 |
 |---|---|---|
 | Config.swift | `config.rs`（schema 已有，补 `app`/`url` 字段） | ✅ 已有 |
 | —（配置反查/方案匹配） | `config.rs` impl（`raw_to_button` / `resolve_profile`） | ✅ 阶段 0 |
@@ -88,13 +88,13 @@ sherpa 线程池   本地识别推理（全局一个引擎实例，会话间 res
 - **阶段 4 切换**（已完成）：launchd 守护进程已卸载（bootout + 删 plist +
   删 `~/Library/Application Support/mojo`）；`Sources/`、`Package.swift`、
   `build-app.sh`、`install.sh`、`probe/`、CI daemon job 已删；
-  SherpaBridge 移至 `desktop/src-tauri/native/sherpa-bridge/`；
+  SherpaBridge 移至 `src-tauri/native/sherpa-bridge/`；
   面板 service.rs / 服务页守护进程卡片同步移除；
   sherpa 下载步骤并入 CI panel job（仅 macOS）。
   遗留：`watch`/`learn` CLI 子命令未移植。
   开机自启已做（tauri-plugin-autostart，LaunchAgent，托盘菜单勾选开关）；
   应用启动时若有配置文件会自动拉起引擎。
-  签名已解决：`desktop/scripts/build-signed.sh`（`pnpm build:signed`）
+  签名已解决：`scripts/build-signed.sh`（`pnpm build:signed`）
   自动检测本机开发证书经 APPLE_SIGNING_IDENTITY 注入（不落配置，CI 不受影响），
   与旧 Swift 版同证书同 bundle id → TCC 授权继承实测通过；
   sherpa dylib 已收进 .app Frameworks 并随包重签名，rpath 已规范化，可分发。

@@ -39,8 +39,8 @@
     "category": "Utility",
     "macOS": {
       "frameworks": [
-        "../../third_party/sherpa-onnx/lib/libsherpa-onnx-c-api.dylib",
-        "../../third_party/sherpa-onnx/lib/libonnxruntime.dylib"
+        "../third_party/sherpa-onnx/lib/libsherpa-onnx-c-api.dylib",
+        "../third_party/sherpa-onnx/lib/libonnxruntime.dylib"
       ]
     }
   },
