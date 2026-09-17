@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Square, AlertTriangle, Play, Cpu, RefreshCw, Download, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
+import { relaunch } from "@tauri-apps/plugin-process";
 import { api } from "../lib/api";
 import { checkForUpdate } from "../lib/updater";
 import type { EngineStatus } from "../lib/types";
@@ -118,9 +119,25 @@ export default function ServicePage() {
               )}
               <p className="text-[12px] leading-relaxed text-muted-foreground">
                 授权后请在本页点「停止引擎」再「启动引擎」（或退出重开）。
-                若列表里已有 Mojo 且开关已打开却仍提示：先删掉旧条目再重新添加 ——
-                重新构建/更新 App 后旧授权会失效。
+                若列表里已有 Mojo 且开关已打开却仍提示：说明旧授权条目已失效
+                （未签名的 App 每次更新都会这样），需删掉旧条目重新授权 ——
+                可直接点下方按钮一键重置。
               </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    await api.resetPermissions();
+                    toast.success("已清除失效的授权条目，应用即将重启，请重新授权");
+                    setTimeout(() => relaunch(), 1200);
+                  } catch (e) {
+                    toast.error(String(e));
+                  }
+                }}
+              >
+                重置授权并重启
+              </Button>
             </CardContent>
           </Card>
         )}

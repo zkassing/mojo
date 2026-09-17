@@ -88,6 +88,22 @@ fn open_permission_settings(which: String) {
     engine::macos::perms::open_settings(&which);
 }
 
+/// 重置 macOS TCC 授权条目（辅助功能 + 输入监控）。
+/// 未签名 App 更新后旧授权失效但设置里仍显示开启，需重置后重新授权。
+#[tauri::command]
+fn reset_permissions(app: tauri::AppHandle) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let bid = app.config().identifier.clone();
+        engine::macos::perms::reset(&bid)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = &app;
+        Ok(())
+    }
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct AppInfo {
@@ -778,6 +794,7 @@ pub fn run() {
             engine_supported,
             permission_status,
             open_permission_settings,
+            reset_permissions,
             engine_start,
             engine_stop,
             engine_runtime_status,

@@ -22,6 +22,8 @@ export const api = {
     ),
   openPermissionSettings: (which: "input" | "accessibility") =>
     invoke<void>("open_permission_settings", { which }),
+  /** 重置 macOS TCC 授权条目（更新后旧授权失效时用） */
+  resetPermissions: () => invoke<void>("reset_permissions"),
 
   /** 弹出系统文件选择器选一个应用，返回它的 Bundle ID / 名字 */
   pickApp: async (platform: string): Promise<AppInfo | null> => {

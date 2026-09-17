@@ -4,9 +4,9 @@ import {
   AudioLines,
   HeartPulse,
   ScrollText,
-  Gamepad2,
   AlertTriangle,
 } from "lucide-react";
+import appIcon from "./assets/app-icon.png";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -58,9 +58,11 @@ export default function App() {
       <div className="grid h-screen grid-cols-[224px_1fr] bg-background">
         <aside className="flex flex-col gap-1 border-r border-border bg-card p-3">
           <div className="flex items-center gap-2.5 px-2 pb-5 pt-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Gamepad2 className="h-5 w-5" />
-            </div>
+            <img
+              src={appIcon}
+              alt="Mojo"
+              className="h-9 w-9 rounded-lg"
+            />
             <div className="leading-tight">
               <div className="text-sm font-semibold">Mojo</div>
               <div className="text-[11px] text-muted-foreground">

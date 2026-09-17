@@ -57,6 +57,25 @@ fn check_input_monitoring() -> Option<bool> {
     }
 }
 
+/// 重置本 App 的 TCC 授权条目（辅助功能 + 输入监控）。
+/// 未签名 App 每次构建 cdhash 都会变，更新后旧授权条目失效但设置里开关仍显示开着，
+/// 必须删掉旧条目（重置）再重新授权才生效。
+pub fn reset(bundle_id: &str) -> Result<(), String> {
+    for service in ["Accessibility", "ListenEvent"] {
+        let out = std::process::Command::new("tccutil")
+            .args(["reset", service, bundle_id])
+            .output()
+            .map_err(|e| format!("运行 tccutil 失败: {e}"))?;
+        if !out.status.success() {
+            return Err(format!(
+                "tccutil reset {service} 失败: {}",
+                String::from_utf8_lossy(&out.stderr)
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// 打开对应的系统设置面板
 pub fn open_settings(which: &str) {
     let pane = match which {
